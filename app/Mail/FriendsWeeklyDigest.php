@@ -3,19 +3,34 @@
 namespace App\Mail;
 
 use App\Models\CollectionRecord;
+use App\Models\RecordList;
+use App\Models\User;
 use App\Support\RecordCoverImages;
 use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Mail\Mailable;
+use Illuminate\Support\Collection as SupportCollection;
 
 class FriendsWeeklyDigest extends Mailable
 {
     /** @var array<int, string>|null */
     protected ?array $covers = null;
 
-    /** @param Collection<int, CollectionRecord> $records */
-    public function __construct(public Collection $records)
+    /** @var SupportCollection<int, User> */
+    public SupportCollection $collectors;
+
+    /** @var Collection<int, RecordList> */
+    public Collection $lists;
+
+    /**
+     * @param  Collection<int, CollectionRecord>  $records
+     * @param  Collection<int, RecordList>|null  $lists
+     */
+    public function __construct(public Collection $records, ?Collection $lists = null)
     {
+        $this->collectors = $records->pluck('user')->unique('id')->values();
+        $this->records = $records->take(10);
+        $this->lists = $lists ?? new Collection;
         $this->theme = 'friends-digest-theme';
     }
 

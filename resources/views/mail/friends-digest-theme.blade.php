@@ -18,6 +18,13 @@
 .digest-title a { color: #292a22; text-decoration: none; }
 .digest-artist { color: #292a22; font-size: 17px; line-height: 1.4; margin: 0 0 6px; overflow-wrap: anywhere; }
 .digest-meta { color: #292a22; font-size: 13px; line-height: 1.5; margin: 0; }
+.digest-section { padding: 28px 32px; border-bottom: 1px solid #292a22; }
+.digest-section-heading { color: #292a22; font-family: Impact, 'Arial Narrow', Arial, sans-serif; font-size: 30px; font-weight: 900; letter-spacing: -1px; line-height: 1.1; margin: 0 0 12px; }
+.digest-section-intro { color: #292a22; font-size: 15px; line-height: 1.5; margin: 0 0 20px; }
+.digest-collection { font-size: 17px; line-height: 1.5; margin: 12px 0 0; }
+.digest-collection a, .digest-list-title a { color: #292a22; text-decoration: underline; overflow-wrap: anywhere; }
+.digest-list { margin-top: 20px; }
+.digest-list-title { font-size: 20px; font-weight: bold; line-height: 1.3; margin: 0 0 6px; }
 .digest-signoff { padding: 28px 32px; }
 .digest-button { display: inline-block; background-color: #d9ed92; border: 14px solid #d9ed92; border-left-width: 20px; border-right-width: 20px; border-radius: 32px; color: #292a22; font-size: 15px; font-weight: bold; text-decoration: none; }
 .digest-footer { padding: 24px 32px; }

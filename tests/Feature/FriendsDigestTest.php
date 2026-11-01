@@ -3,6 +3,7 @@
 use App\Actions\Collections\StoreCollectionRecordAction;
 use App\Actions\Social\SendFriendsDigestAction;
 use App\Mail\FriendsWeeklyDigest;
+use App\Models\RecordList;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Http;
@@ -217,3 +218,99 @@ it('previews only the requested local recipient without advancing checkpoints an
     $this->artisan('social:send-digests', ['--preview-for' => $viewer->id])->assertFailed();
     Mail::assertSentCount(1);
 });
+
+it('shows ten latest additions but links every collection updated during the week', function () {
+    Mail::fake();
+    $end = CarbonImmutable::parse('2026-11-01T09:00:00+01:00');
+    $viewer = socialUser('viewer');
+    $busy = socialUser('busy', 'friends');
+    $quiet = socialUser('quiet', 'friends');
+    $hidden = socialUser('hidden', 'only_me');
+    foreach ([$busy, $quiet, $hidden] as $friend) {
+        socialFriends($viewer, $friend);
+    }
+    socialRecord($quiet, 'Earlier addition', true, '2026-10-26 12:00:00');
+    socialRecord($hidden, 'Hidden addition', true, '2026-10-31 23:00:00');
+    for ($index = 0; $index < 12; $index++) {
+        socialRecord($busy, "Addition {$index}", true, CarbonImmutable::parse('2026-10-30 12:00:00')->addMinutes($index)->toDateTimeString(), $index + 1);
+    }
+
+    app(SendFriendsDigestAction::class)->execute($viewer, $end);
+
+    Mail::assertSent(FriendsWeeklyDigest::class, function (FriendsWeeklyDigest $mail) use ($busy, $quiet) {
+        expect($mail->records->pluck('payload.displayTitle')->all())->toBe(array_map(fn ($index) => "Addition {$index}", range(11, 2)));
+        expect($mail->collectors->pluck('id')->all())->toBe([$busy->id, $quiet->id]);
+        $html = $mail->render();
+        expect($html)->toContain('Updated collections', route('profile', $busy->handle), route('profile', $quiet->handle))
+            ->not->toContain('Earlier addition', 'Hidden addition', '/hidden');
+        expect(substr_count($html, 'class="digest-row"'))->toBe(10);
+
+        return true;
+    });
+});
+
+it('sends a lists-only digest with the ten newest accessible lists created inside the week', function () {
+    $end = CarbonImmutable::parse('2026-11-01T09:00:00+01:00')->utc();
+    $viewer = socialUser('viewer');
+    $stranger = socialUser('stranger', 'only_me');
+    $friend = socialUser('friend', 'friends');
+    socialFriends($viewer, $friend);
+    $lists = collect();
+    for ($index = 0; $index < 11; $index++) {
+        $lists->push(RecordList::create(['user_id' => $stranger->id, 'name' => "Public {$index}", 'visibility' => 'everyone', 'created_at' => $end->subDays(2)->addMinutes($index)]));
+    }
+    $shared = RecordList::create(['user_id' => $friend->id, 'name' => 'Friends [list](https://untrusted.example)', 'visibility' => 'friends', 'created_at' => $end->subDay()]);
+    $own = RecordList::create(['user_id' => $viewer->id, 'name' => '<b>My private list</b>', 'visibility' => 'only_me', 'created_at' => $end->subHour()]);
+    foreach ([
+        ['Hidden private', 'only_me', $end->subMinute()],
+        ['Unaccepted friends', 'friends', $end->subMinute()],
+        ['Old but edited today', 'everyone', $end->subWeek()->subSecond()],
+        ['Next week', 'everyone', $end],
+    ] as [$name, $visibility, $createdAt]) {
+        RecordList::create(['user_id' => $stranger->id, 'name' => $name, 'visibility' => $visibility, 'created_at' => $createdAt]);
+    }
+    $mailer = Mail::mailer('array');
+    Mail::fake();
+
+    app(SendFriendsDigestAction::class)->execute($viewer, $end);
+
+    Mail::assertSent(FriendsWeeklyDigest::class, function (FriendsWeeklyDigest $mail) use ($own, $shared, $lists, $mailer) {
+        expect($mail->records)->toBeEmpty();
+        expect($mail->lists->modelKeys())->toBe([$own->id, $shared->id, ...$lists->slice(3)->reverse()->pluck('id')->all()]);
+        $sent = $mailer->send($mail);
+        $message = $sent->getSymfonySentMessage()->getOriginalMessage();
+        expect($message->getHtmlBody())->toContain('New lists', route('lists.show', $own->public_id), route('lists.show', $shared->public_id))
+            ->not->toContain('Hidden private', 'Unaccepted friends', 'Old but edited today', 'Next week', '<b>My private list</b>', 'href="https://untrusted.example"', 'Updated collections', 'See friends’ additions');
+        expect($message->getTextBody())->toContain($own->name, $shared->name, route('lists.show', $own->public_id))
+            ->not->toContain('Hidden private');
+
+        return true;
+    });
+});
+
+it('rechecks new list access after preparing record covers', function (string $change) {
+    Mail::fake();
+    $end = CarbonImmutable::parse('2026-11-01T09:00:00+01:00');
+    $viewer = socialUser('viewer');
+    $owner = socialUser('owner', 'friends');
+    $friendship = socialFriends($viewer, $owner);
+    $list = RecordList::create(['user_id' => $owner->id, 'name' => 'Withdrawn list', 'visibility' => 'friends', 'created_at' => $end->subDay()]);
+    $record = socialRecord($owner, 'Recent record', true, $end->subDay()->utc()->toDateTimeString());
+    app(StoreCollectionRecordAction::class)->execute($record, ['payload' => [...$record->payload, 'cover' => 'https://i.discogs.com/change.jpg']]);
+    Http::fake(['https://i.discogs.com/change.jpg' => function () use ($change, $list, $friendship) {
+        match ($change) {
+            'visibility' => $list->update(['visibility' => 'only_me']),
+            'friendship' => $friendship->delete(),
+            'deleted' => $list->delete(),
+        };
+
+        return Http::response(file_get_contents(public_path('images/demo-sleeve-1.jpg')), 200);
+    }]);
+
+    app(SendFriendsDigestAction::class)->execute($viewer, $end);
+
+    Mail::assertSentCount($change === 'friendship' ? 0 : 1);
+    if ($change !== 'friendship') {
+        Mail::assertSent(FriendsWeeklyDigest::class, fn (FriendsWeeklyDigest $mail) => $mail->lists->isEmpty() && ! str_contains($mail->render(), 'Withdrawn list'));
+    }
+})->with(['visibility', 'friendship', 'deleted']);
