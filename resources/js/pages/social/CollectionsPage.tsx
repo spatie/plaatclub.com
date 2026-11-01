@@ -65,7 +65,11 @@ export function CollectionsPage(props: CollectionsProps) {
                         </div>
                     ) : (
                         <section className="empty panel">
-                            <h2>No public lists yet</h2>
+                            <h2>
+                                {props.featuredLists.length
+                                    ? 'More lists coming soon'
+                                    : 'No public lists yet'}
+                            </h2>
                             <p>
                                 Lists appear here when their owners choose
                                 Everyone. Their collections can stay private.

@@ -46,13 +46,16 @@ class HomeController
 
     public function collections(Request $request): Response
     {
+        $featuredLists = $this->featuredLists();
+
         if ($request->query('tab') === 'lists') {
-            $lists = RecordList::previews(null)->paginate(12)->appends(['tab' => 'lists']);
+            $lists = RecordList::previews(null)->whereNotIn('public_id', array_column($featuredLists, 'publicId'))
+                ->paginate(12)->appends(['tab' => 'lists']);
 
             return Inertia::render('social/CollectionsPage', [
                 'tab' => 'lists',
                 'lists' => SocialData::pagination($lists, $lists->getCollection()->map(SocialData::listPreview(...))->all()),
-                'featuredLists' => $this->featuredLists(),
+                'featuredLists' => $featuredLists,
             ]);
         }
 
@@ -61,7 +64,7 @@ class HomeController
         return Inertia::render('social/CollectionsPage', [
             'tab' => 'collections',
             'collectors' => SocialData::pagination($collectors, $collectors->getCollection()->map(SocialData::collector(...))->all()),
-            'featuredLists' => $this->featuredLists(),
+            'featuredLists' => $featuredLists,
         ]);
     }
 
@@ -94,7 +97,15 @@ class HomeController
     /** @return list<array<string, mixed>> */
     protected function featuredLists(): array
     {
-        $ids = ['7dd4b401-53f4-4c32-a2c3-e9af74b7480f', '52249783-9141-44ba-a9c2-879ed0077c4a'];
+        $ids = [
+            '7dd4b401-53f4-4c32-a2c3-e9af74b7480f',
+            '52249783-9141-44ba-a9c2-879ed0077c4a',
+            '6c7c5464-d348-4100-b094-45c1ffa88743',
+            'd41280d4-c410-4f01-a2a0-e7eaf30cb37a',
+            '93cd562d-4f27-486a-aaf5-fabef549567d',
+            'e62deb9c-b717-4935-ab17-b032b2aa1560',
+            '958ac451-063f-46cf-b334-ee7e5f048dd0',
+        ];
 
         return array_values(RecordList::previews(null)->whereIn('public_id', $ids)->get()
             ->sortBy(fn (RecordList $list) => array_search($list->public_id, $ids, true))

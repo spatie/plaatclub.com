@@ -554,8 +554,12 @@ it('paginates public lists independently of collection visibility and removes hi
         ->where('listCount', 13)->has('lists.data', 12)->where('lists.next_page_url', url('/private_collector/lists?page=2')));
     $this->get('/private_collector/lists?page=2')->assertInertia(fn (Assert $page) => $page
         ->where('listCount', 13)->has('lists.data', 1)->where('lists.data.0.name', 'Selection 1'));
+    RecordList::query()->create([
+        'user_id' => $owner->id, 'public_id' => '7dd4b401-53f4-4c32-a2c3-e9af74b7480f',
+        'name' => 'A featured selection', 'visibility' => 'everyone',
+    ]);
     $this->actingAs($viewer)->get('/collections?tab=lists')->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->where('tab', 'lists')->has('lists.data', 12)->missing('collectors')
+        ->where('tab', 'lists')->has('featuredLists', 1)->has('lists.data', 12)->missing('collectors')
         ->where('lists.data.0.name', 'Selection 13')->where('lists.data.0.owner.handle', 'private_collector')
         ->where('lists.data.0.count', 1)->has('lists.data.0.covers', 1)
         ->where('lists.next_page_url', url('/collections?tab=lists&page=2')));

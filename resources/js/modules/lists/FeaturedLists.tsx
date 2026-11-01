@@ -23,8 +23,8 @@ export function FeaturedLists({
                     <p className="eyebrow">Hand-picked listening</p>
                     <h2 id="featured-lists-title">{heading}</h2>
                     <p>
-                        Personal selections from BBC Radio 4’s Desert Island
-                        Discs.
+                        Favourite records and unexpected discoveries from
+                        musicians and selectors.
                     </p>
                 </div>
                 <Link

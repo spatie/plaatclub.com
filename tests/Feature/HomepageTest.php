@@ -46,6 +46,29 @@ it('features hand-picked public lists in editorial order and respects privacy im
         ->where('featuredLists.1.publicId', $second->public_id))
         ->assertDontSee('Not for discovery');
 
+    $newSelections = [
+        '6c7c5464-d348-4100-b094-45c1ffa88743' => 'James Murphy’s Soundtrack of My Life',
+        'd41280d4-c410-4f01-a2a0-e7eaf30cb37a' => 'Brian Eno’s Baker’s Dozen',
+        '93cd562d-4f27-486a-aaf5-fabef549567d' => 'Don Letts’ John Peel Record Box',
+        'e62deb9c-b717-4935-ab17-b032b2aa1560' => 'Mala’s John Peel Record Box',
+        '958ac451-063f-46cf-b334-ee7e5f048dd0' => 'John Peel’s Record Box',
+    ];
+    foreach (array_reverse($newSelections, true) as $publicId => $name) {
+        RecordList::query()->create([
+            'user_id' => $owner->id, 'public_id' => $publicId, 'name' => $name, 'visibility' => 'everyone',
+        ]);
+    }
+
+    $response = $this->get($path)->assertOk();
+    expect(array_column($response->inertiaProps('featuredLists'), 'publicId'))
+        ->toBe([$first->public_id, $second->public_id, ...array_keys($newSelections)]);
+    if ($path === '/collections?tab=lists') {
+        $response->assertInertia(fn (Assert $page) => $page
+            ->has('lists.data', 1)->where('lists.data.0.name', 'An ordinary public list')
+            ->where('lists.next_page_url', null));
+    }
+    RecordList::query()->whereIn('public_id', array_keys($newSelections))->delete();
+
     foreach (['friends', 'only_me'] as $visibility) {
         $first->update(['visibility' => $visibility]);
         $this->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
