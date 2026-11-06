@@ -23,25 +23,25 @@
 
 @font-face {
     font-family: 'Club Display';
-    src: url('/fonts/barlow-condensed-bold.ttf') format('truetype');
+    src: url('/fonts/barlow-condensed-bold.woff2') format('woff2');
     font-weight: 700;
     font-display: swap;
 }
 @font-face {
     font-family: 'Club Sans';
-    src: url('/fonts/dm-sans-regular.ttf') format('truetype');
+    src: url('/fonts/dm-sans-regular.woff2') format('woff2');
     font-weight: 400;
     font-display: swap;
 }
 @font-face {
     font-family: 'Club Sans';
-    src: url('/fonts/dm-sans-semibold.ttf') format('truetype');
+    src: url('/fonts/dm-sans-semibold.woff2') format('woff2');
     font-weight: 600;
     font-display: swap;
 }
 @font-face {
     font-family: 'Club Serif';
-    src: url('/fonts/instrument-serif-italic.ttf') format('truetype');
+    src: url('/fonts/instrument-serif-italic.woff2') format('woff2');
     font-style: italic;
     font-display: swap;
 }
@@ -66,6 +66,7 @@
         font:
             16px/1.5 'Club Sans',
             sans-serif;
+        font-synthesis: none;
     }
     :scope.home-page,
     :scope.feed-page {
@@ -107,6 +108,9 @@
     }
     [hidden] {
         display: none !important;
+    }
+    ::placeholder {
+        color: color-mix(in oklch, currentColor 72%, transparent);
     }
     a {
         color: inherit;
@@ -224,8 +228,19 @@
         gap: 2px !important;
     }
     .main-navigation > a {
+        flex-direction: column;
+        align-items: center;
         padding: 10px 18px;
         white-space: nowrap;
+    }
+    .main-navigation > a::after {
+        content: attr(data-label);
+        height: 0;
+        overflow: hidden;
+        visibility: hidden;
+        font-weight: 600;
+        pointer-events: none;
+        user-select: none;
     }
     .main-navigation > a[aria-current] {
         font-weight: 600;
@@ -299,6 +314,7 @@
         background: var(--acid);
         color: var(--ink);
         font-size: 11px;
+        font-variant-numeric: tabular-nums;
         place-items: center;
         min-width: 18px;
         height: 18px;
@@ -337,9 +353,13 @@
         background: transparent;
         font-size: 16px;
     }
-    .account-popover > :is(a, button):hover,
     .account-popover [aria-current] {
         background: var(--acid);
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .account-popover > :is(a, button):hover {
+            background: var(--acid);
+        }
     }
     .notifications-popover {
         width: min(420px, calc(100vw - 32px));
@@ -402,8 +422,10 @@
         gap: 14px;
         padding: 20px;
     }
-    .notification-item > a:hover {
-        background: var(--acid);
+    @media (hover: hover) and (pointer: fine) {
+        .notification-item > a:hover {
+            background: var(--acid);
+        }
     }
     .notification-item > a > img,
     .notification-avatar {
@@ -470,6 +492,7 @@
     h3 {
         font-family: 'Club Display', sans-serif;
         font-weight: 700;
+        text-wrap: balance;
     }
     h1 {
         font-size: clamp(64px, 10vw, 160px);
@@ -532,30 +555,46 @@
             background 180ms,
             color 180ms,
             transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+        touch-action: manipulation;
     }
-    .button:hover {
-        background: var(--acid);
-        color: var(--ink);
-        transform: translateY(-2px) rotate(-2deg);
+    .button:active:not(:disabled) {
+        transform: scale(0.96);
+        transition-duration: 100ms;
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .button:hover {
+            background: var(--acid);
+            color: var(--ink);
+            transform: translateY(-2px) rotate(-2deg);
+        }
     }
     .button.secondary {
         background: transparent;
         color: var(--ink);
     }
-    .button.secondary:hover {
-        background: var(--ink);
-        color: var(--cream);
+    @media (hover: hover) and (pointer: fine) {
+        .button.secondary:hover {
+            background: var(--ink);
+            color: var(--cream);
+        }
     }
     .button.small {
         min-height: 40px;
         padding: 9px 16px;
     }
     .text-button {
+        position: relative;
         background: transparent;
         border: 0;
         padding: 0;
         text-decoration: underline;
         text-align: left;
+        touch-action: manipulation;
+    }
+    .text-button::before {
+        content: '';
+        position: absolute;
+        inset: -10px -6px;
     }
     .actions,
     .section-heading {
@@ -624,6 +663,9 @@
     .panel {
         padding: 32px;
         background: var(--page-accent);
+    }
+    .invite-panel {
+        max-width: 760px;
     }
     .settings-sharing {
         border-top: 1px solid;
@@ -1272,10 +1314,15 @@
     .collection-preview-covers > a:nth-child(even) {
         transform: translateY(10px) rotate(8deg);
     }
-    .collection-preview-covers > a:hover,
     .collection-preview-covers > a:focus-visible {
         z-index: 1;
         transform: translateY(-16px) rotate(0);
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .collection-preview-covers > a:hover {
+            z-index: 1;
+            transform: translateY(-16px) rotate(0);
+        }
     }
     .collection-preview-covers img {
         display: block;
@@ -1532,9 +1579,13 @@
         display: block;
         transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .floating-sleeve a:hover,
     .floating-sleeve a:focus-visible {
         transform: translateY(-14px);
+    }
+    @media (hover: hover) and (pointer: fine) {
+        .floating-sleeve a:hover {
+            transform: translateY(-14px);
+        }
     }
     .floating-sleeve img {
         display: block;
@@ -1650,7 +1701,8 @@
         .main-navigation > a[aria-current] {
             box-shadow: inset 0 -2px 0 var(--ink);
         }
-        .main-navigation .nav-label-full {
+        .main-navigation .nav-label-full,
+        .main-navigation > a::after {
             display: none;
         }
         .main-navigation .nav-label-short {

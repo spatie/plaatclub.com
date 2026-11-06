@@ -113,6 +113,7 @@ export function SocialLayout({ children }: { children: ReactNode }) {
                                 aria-label="Main navigation"
                             >
                                 <Link
+                                    data-label="My collection"
                                     href={
                                         settingUpCollection
                                             ? '/friends'
@@ -135,6 +136,7 @@ export function SocialLayout({ children }: { children: ReactNode }) {
                                     </span>
                                 </Link>
                                 <Link
+                                    data-label="Friends’ finds"
                                     href={
                                         settingUpCollection
                                             ? '/friends/manage'
@@ -155,6 +157,7 @@ export function SocialLayout({ children }: { children: ReactNode }) {
                                     </span>
                                 </Link>
                                 <Link
+                                    data-label="Explore"
                                     href="/collections"
                                     aria-current={
                                         path === '/collections'
@@ -166,6 +169,7 @@ export function SocialLayout({ children }: { children: ReactNode }) {
                                 </Link>
                                 {props.aiSearchEnabled && (
                                     <Link
+                                        data-label="Ask your collection"
                                         href="/ask"
                                         aria-current={
                                             path === '/ask' ? 'page' : undefined

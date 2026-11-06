@@ -12,8 +12,6 @@
         <meta name="twitter:site" content="@freekmurze">
         <meta name="theme-color" content="#292a22">
 
-        @fonts
-
         @viteReactRefresh
         @vite(['resources/css/social.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
         <x-inertia::head>

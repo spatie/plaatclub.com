@@ -53,9 +53,13 @@
 .collection-sharing summary::-webkit-details-marker {
     display: none;
 }
-.collection-sharing summary:hover,
 .collection-sharing details[open] summary {
     background: var(--cream);
+}
+@media (hover: hover) and (pointer: fine) {
+    .collection-sharing summary:hover {
+        background: var(--cream);
+    }
 }
 .collection-sharing :focus-visible {
     outline: 2px solid currentColor;
@@ -120,8 +124,10 @@
     text-align: left;
     cursor: pointer;
 }
-.sharing-choice:hover {
-    background: var(--lilac);
+@media (hover: hover) and (pointer: fine) {
+    .sharing-choice:hover {
+        background: var(--lilac);
+    }
 }
 .sharing-choice[aria-pressed='true'] {
     background: var(--acid);

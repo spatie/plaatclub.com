@@ -25,12 +25,14 @@ export function CollectionTabs({
             }
         >
             <Link
+                data-label="Records"
                 href={collector.profileUrl}
                 aria-current={active === 'records' ? 'page' : undefined}
             >
                 Records
             </Link>
             <Link
+                data-label={`Lists${listCount !== undefined ? ` (${listCount})` : ''}`}
                 href={owner ? '/lists' : `${collector.profileUrl}/lists`}
                 aria-current={active === 'lists' ? 'page' : undefined}
             >

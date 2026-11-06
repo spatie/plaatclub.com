@@ -10,7 +10,7 @@ export function InviteFriendsPage() {
                 <p className="page-eyebrow">Good records. Better company.</p>
                 <h1>Bring your people.</h1>
             </div>
-            <section className="panel stack">
+            <section className="panel stack invite-panel">
                 <h2>Invite a friend by email</h2>
                 <p>
                     Share the joy of collecting. Your friend gets an invitation

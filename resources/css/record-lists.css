@@ -21,9 +21,19 @@
         margin: 0 0 32px;
     }
     .page > .collection-tabs a {
+        display: inline-grid;
         padding: 12px 4px;
         text-decoration: none;
         border-bottom: 3px solid transparent;
+    }
+    .page > .collection-tabs a::after {
+        content: attr(data-label);
+        height: 0;
+        overflow: hidden;
+        visibility: hidden;
+        font-weight: 600;
+        pointer-events: none;
+        user-select: none;
     }
     .page > .collection-tabs a[aria-current] {
         border-color: var(--ink);
@@ -173,8 +183,10 @@
         height: 44px;
         flex: none;
     }
-    .list-create-close:hover {
-        background: var(--cream);
+    @media (hover: hover) and (pointer: fine) {
+        .list-create-close:hover {
+            background: var(--cream);
+        }
     }
     .list-create-dialog .list-editor-visibility {
         padding: 0;
@@ -324,8 +336,10 @@
     .record-list-actions > summary::-webkit-details-marker {
         display: none;
     }
-    .record-list-actions > summary:hover {
-        opacity: 0.85;
+    @media (hover: hover) and (pointer: fine) {
+        .record-list-actions > summary:hover {
+            opacity: 0.85;
+        }
     }
     .record-list-actions[open] > summary > svg:last-child {
         transform: rotate(180deg);
@@ -433,10 +447,12 @@
     .record-list-options label:has(input:disabled) {
         cursor: wait;
     }
-    .record-list-options label:hover,
-    .record-list-new:hover,
-    .record-list-heading button:hover {
-        background: var(--lilac);
+    @media (hover: hover) and (pointer: fine) {
+        .record-list-options label:hover,
+        .record-list-new:hover,
+        .record-list-heading button:hover {
+            background: var(--lilac);
+        }
     }
     .record-list-new {
         margin-top: 6px;
@@ -596,9 +612,11 @@
         padding: 8px 12px;
         background: transparent;
     }
-    .picker-add:hover:not(:disabled) {
-        background: var(--ink);
-        color: var(--cream);
+    @media (hover: hover) and (pointer: fine) {
+        .picker-add:hover:not(:disabled) {
+            background: var(--ink);
+            color: var(--cream);
+        }
     }
     .picker-add.is-added {
         background: var(--acid);
@@ -666,9 +684,11 @@
     .selection-drag:active {
         cursor: grabbing;
     }
-    .selection-drag:hover,
-    .selection-remove:hover {
-        background: var(--cream);
+    @media (hover: hover) and (pointer: fine) {
+        .selection-drag:hover,
+        .selection-remove:hover {
+            background: var(--cream);
+        }
     }
     .selection-drag:focus-visible,
     .selection-remove:focus-visible {
@@ -723,8 +743,10 @@
         padding: 24px 0;
         text-align: left;
     }
-    .list-record-toggle:hover {
-        background: #dbee8d70;
+    @media (hover: hover) and (pointer: fine) {
+        .list-record-toggle:hover {
+            background: #dbee8d70;
+        }
     }
     .list-record-number {
         font-size: 13px;

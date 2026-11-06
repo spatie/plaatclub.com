@@ -21,6 +21,7 @@ export function CollectionsPage(props: CollectionsProps) {
             />
             <nav className="collection-tabs explore-tabs" aria-label="Explore">
                 <Link
+                    data-label="Collections"
                     href="/collections"
                     viewTransition
                     preserveScroll
@@ -37,6 +38,7 @@ export function CollectionsPage(props: CollectionsProps) {
                     )}
                 </Link>
                 <Link
+                    data-label="Lists"
                     href="/collections?tab=lists"
                     viewTransition
                     preserveScroll
