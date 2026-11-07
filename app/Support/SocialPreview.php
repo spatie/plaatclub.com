@@ -66,6 +66,10 @@ class SocialPreview
             ]);
         }
 
+        if ($request->routeIs('about', 'privacy', 'collections', 'weeklyEmail')) {
+            $preview['url'] = $request->url();
+        }
+
         return $preview;
     }
 }

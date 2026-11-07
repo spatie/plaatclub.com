@@ -6,6 +6,7 @@ use App\Http\Controllers\RecordDetailsController;
 use App\Http\Controllers\RecordShareImageController;
 use App\Http\Controllers\ShowCollectionController;
 use App\Http\Controllers\ShowRecordController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SocialPreviewController;
 use App\Http\Controllers\StopImpersonationController;
 use App\Http\Middleware\CacheAtEdge;
@@ -23,6 +24,8 @@ Route::get('/', HomeController::class)->middleware([PrivateResponse::class, Ensu
 
 // Public artwork and legacy redirects need no session.
 Route::withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->group(function () {
+
+    Route::get('sitemap.xml', SitemapController::class)->name('sitemap');
 
     Route::middleware('throttle:shareImages')->group(function () {
         Route::get('share/site.jpg', [SocialPreviewController::class, 'home'])
