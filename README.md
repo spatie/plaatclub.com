@@ -174,9 +174,14 @@ provided by Google. Anonymous visitors can still browse public collections.
   no notifications and does not create feed activity.
 - The **Sunday Morning** digest is enabled by default, can be disabled in Settings, and runs Sunday
   at 09:00 **Europe/Brussels**. It covers the preceding Sunday 09:00 to Sunday 09:00 interval,
-  including DST changes. No visible friend additions means no email. Sends are synchronous
-  to avoid retaining stale private record payloads in an email queue. A completed week is
-  recorded per recipient to prevent ordinary reruns from sending duplicates. As with
+  including DST changes. No visible friend additions or new lists means no email. The scheduler
+  queues one unique job per recipient and week on the existing default queue, then exits.
+  Jobs contain only the recipient ID and weekly cutoff, never record data or rendered mail.
+  The worker checks current preferences and access, prepares covers, rechecks access, and sends
+  synchronously within the job. Delivery can wait behind other queued work; delayed jobs retain
+  their original weekly window. Jobs have a 300-second timeout and three attempts, one minute apart.
+  A completed week is recorded per recipient to prevent reruns from sending duplicates;
+  older jobs also skip delivery if a newer week has already completed. As with
   SMTP generally, a crash after delivery but before marking completion can duplicate a send.
 
 ### Release lists
@@ -362,7 +367,7 @@ creates users or permits switching to Freek’s reserved account. Normal email/p
 authentication remains unchanged; production installs use `composer install --no-dev`.
 For developer email checks, enable a demo user’s digest and run
 `php artisan social:send-digests --preview-for=<user-id>` locally. This checks the last
-seven days without changing the weekly checkpoint; privacy and empty-week suppression
+seven days synchronously without changing the weekly checkpoint; privacy and empty-week suppression
 still apply. There are no preview tools in Settings. Real Discogs authorization requires your own OAuth consumer
 credentials; missing credentials show an actionable message rather than a fake connection.
 

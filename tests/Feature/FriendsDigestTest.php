@@ -4,11 +4,117 @@ use App\Actions\Collections\StoreCollectionRecordAction;
 use App\Actions\Social\SendFriendsDigestAction;
 use App\Mail\FriendsWeeklyDigest;
 use App\Models\RecordList;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
+
+it('queues only recipient identity and the original week, then delivers once through the worker', function () {
+    config(['queue.default' => 'database']);
+    Mail::fake();
+    User::query()->update(['digest_enabled' => false]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-25T09:00:00+01:00'));
+    $viewer = socialUser('queued_viewer');
+    $owner = socialUser('queued_owner', 'friends');
+    $owner->update(['digest_enabled' => false]);
+    socialFriends($viewer, $owner);
+    socialRecord($owner, 'Original week album', true, '2026-10-24 12:00:00');
+    socialRecord($owner, 'Following week album', true, '2026-10-26 12:00:00', 456);
+
+    $this->artisan('social:send-digests')->assertSuccessful();
+    $this->artisan('social:send-digests')->assertSuccessful();
+
+    Mail::assertNothingSent();
+    expect($viewer->fresh()->digest_week)->toBeNull();
+    $this->assertDatabaseCount('jobs', 1);
+    expect(DB::table('jobs')->value('payload'))->not->toContain($viewer->email, 'Original week album', 'Following week album', 'FriendsWeeklyDigest');
+
+    $this->travel(8)->days();
+    $this->artisan('queue:work', ['--once' => true])->assertSuccessful();
+
+    Mail::assertSentCount(1);
+    Mail::assertSent(FriendsWeeklyDigest::class, fn (FriendsWeeklyDigest $mail) => $mail->hasTo($viewer->email)
+        && $mail->records->pluck('payload.displayTitle')->all() === ['Original week album']);
+    expect($viewer->fresh()->digest_week)->toBe('2026-10-25');
+    $this->assertDatabaseCount('jobs', 0);
+    $this->assertDatabaseCount('failed_jobs', 0);
+
+    $this->travelTo(CarbonImmutable::parse('2026-10-25T09:00:00+01:00'));
+    $this->artisan('social:send-digests')->assertSuccessful();
+    $this->artisan('queue:work', ['--once' => true])->assertSuccessful();
+    Mail::assertSentCount(1);
+});
+
+it('rechecks a waiting digest against current recipients and access', function (string $change) {
+    config(['queue.default' => 'database']);
+    Mail::fake();
+    User::query()->update(['digest_enabled' => false]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-25T09:00:00+01:00'));
+    $viewer = socialUser('queued_viewer');
+    $owner = socialUser('queued_owner', 'friends');
+    $owner->update(['digest_enabled' => false]);
+    $friendship = socialFriends($viewer, $owner);
+    socialRecord($owner, 'Withdrawn before delivery', true, '2026-10-24 12:00:00');
+
+    $this->artisan('social:send-digests')->assertSuccessful();
+    Mail::assertNothingSent();
+    $this->assertDatabaseCount('jobs', 1);
+
+    match ($change) {
+        'preferences' => $viewer->update(['digest_enabled' => false]),
+        'verification' => $viewer->update(['email_verified_at' => null]),
+        'deleted' => $viewer->delete(),
+        'friendship' => $friendship->delete(),
+        'visibility' => $owner->update(['visibility' => 'only_me']),
+        'newer week' => $viewer->update(['digest_week' => '2026-11-01']),
+    };
+    $this->artisan('queue:work', ['--once' => true])->assertSuccessful();
+
+    Mail::assertNothingSent();
+    $this->assertDatabaseCount('jobs', 0);
+    $this->assertDatabaseCount('failed_jobs', 0);
+    if ($change === 'newer week') {
+        expect($viewer->fresh()->digest_week)->toBe('2026-11-01');
+    }
+})->with(['preferences', 'verification', 'deleted', 'friendship', 'visibility', 'newer week']);
+
+it('retries failed delivery without completing the week or sending duplicates', function () {
+    config(['queue.default' => 'database']);
+    User::query()->update(['digest_enabled' => false]);
+    $this->travelTo(CarbonImmutable::parse('2026-10-25T09:00:00+01:00'));
+    $viewer = socialUser('retry_viewer');
+    $owner = socialUser('retry_owner', 'friends');
+    $owner->update(['digest_enabled' => false]);
+    socialFriends($viewer, $owner);
+    socialRecord($owner, 'Retry album', true, '2026-10-24 12:00:00');
+    $attempts = 0;
+    Event::listen(MessageSending::class, function () use (&$attempts): void {
+        if (++$attempts === 1) {
+            throw new RuntimeException('Temporary mail failure');
+        }
+    });
+
+    $this->artisan('social:send-digests')->assertSuccessful();
+    $this->artisan('queue:work', ['--once' => true, '--tries' => 1])->assertSuccessful();
+
+    expect($viewer->fresh()->digest_week)->toBeNull();
+    $this->assertDatabaseCount('jobs', 1);
+    $this->assertDatabaseCount('failed_jobs', 0);
+    expect(Mail::getSymfonyTransport()->messages())->toHaveCount(0);
+
+    $this->travel(61)->seconds();
+    $this->artisan('queue:work', ['--once' => true, '--tries' => 1])->assertSuccessful();
+
+    expect($viewer->fresh()->digest_week)->toBe('2026-10-25');
+    expect(Mail::getSymfonyTransport()->messages())->toHaveCount(1);
+    $this->assertDatabaseCount('jobs', 0);
+    $this->assertDatabaseCount('failed_jobs', 0);
+});
 
 it('shows a public email example using the real template and only unsaved fictional records', function () {
     Mail::fake();
@@ -194,7 +300,7 @@ it('uses Sunday at nine in Brussels across both daylight saving changes', functi
     socialRecord($owner, 'Next week', true, $end, 4);
     $this->artisan('social:send-digests')->assertSuccessful();
     Mail::assertSent(FriendsWeeklyDigest::class, fn (FriendsWeeklyDigest $mail) => $mail->records->pluck('payload.displayTitle')->all() === ['Window end minus one', 'Window start']);
-    $event = collect(app(Schedule::class)->events())->first(fn ($event) => str_contains($event->command, 'social:send-digests'));
+    $event = collect(app(Schedule::class)->events())->first(fn ($event) => $event->description === 'social:send-digests');
     expect($event->expression)->toBe('0 9 * * 0')->and($event->timezone)->toBe('Europe/Brussels');
 })->with([
     'spring forward' => ['2026-03-29T09:00:00+02:00', '2026-03-22 08:00:00', '2026-03-29 07:00:00'],

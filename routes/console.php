@@ -2,6 +2,7 @@
 
 use App\Models\DiscogsResponse;
 use App\Models\SocialNotification;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 use Laravel\Converse\Models\Thread;
 use Laravel\Converse\Models\ThreadEvent;
@@ -27,5 +28,5 @@ Schedule::command('social:sync-collections --quick')
 Schedule::command('records:enrich-releases')
     ->dailyAt('05:00')->timezone('Europe/Brussels')->withoutOverlapping()->onOneServer();
 
-Schedule::command('social:send-digests')
+Schedule::call(fn () => Artisan::call('social:send-digests'))->name('social:send-digests')
     ->weeklyOn(0, '09:00')->timezone('Europe/Brussels')->withoutOverlapping()->onOneServer();

@@ -16,7 +16,7 @@ class SendFriendsDigestAction
     {
         $week = $end->toDateString();
         $user = $candidate->fresh();
-        if (! $user->digest_enabled || ! $user->email_verified_at || (! $preview && $user->digest_week === $week)) {
+        if (! $user || ! $user->digest_enabled || ! $user->email_verified_at || (! $preview && $user->digest_week >= $week)) {
             return;
         }
 
@@ -32,7 +32,7 @@ class SendFriendsDigestAction
         // Downloads must not consume the send lock's lifetime; recheck privacy and delivery inside it.
         Cache::lock('digest-'.$candidate->id, 300)->get(function () use ($candidate, $mail, $records, $week, $preview): void {
             $user = $candidate->fresh();
-            if (! $user->digest_enabled || ! $user->email_verified_at || (! $preview && $user->digest_week === $week)) {
+            if (! $user || ! $user->digest_enabled || ! $user->email_verified_at || (! $preview && $user->digest_week >= $week)) {
                 return;
             }
 
