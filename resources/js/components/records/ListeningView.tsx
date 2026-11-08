@@ -32,7 +32,7 @@ type ListeningViewProps = {
     onArtist: (artist: string) => void;
     origin: SleeveOrigin | null;
     record: CollectionRecordSummary;
-    details?: CollectionRecord;
+    details: CollectionRecord;
     children?: ReactNode;
 };
 

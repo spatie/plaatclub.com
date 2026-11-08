@@ -91,21 +91,26 @@ class RecordCollection
     public function profileSummaries(array $copies): array
     {
         // Never use the legacy owner's cache or serialize an entire model/payload.
-        $records = array_map(fn (CollectionRecord $copy): array => [
-            ...Arr::only($copy->payload, [
-                'artist', 'artists', 'title', 'displayTitle', 'year', 'originalYear',
-                'label', 'catalogNumber', 'country', 'format', 'genres', 'styles', 'cover', 'coverPreview', 'tracks',
-                'appleMusicUrl', 'appleMusicSearch', 'spotifyUrl', 'spotifySearch',
-                'bandcampUrl', 'bandcampSearch',
-            ]),
-            'id' => $copy->discogs_release_id, 'instanceId' => $copy->instance_id,
-            'publicId' => $copy->public_id,
-            'addedAt' => $copy->added_at->toIso8601String(),
-            'mediaFormats' => $copy->formats(),
-            'cover' => filled($copy->payload['cover'] ?? null) && $copy->payload['cover'] !== '/images/record-placeholder.svg'
-                ? route('shelf.cover', $copy, false)
-                : ($copy->payload['cover'] ?? '/images/record-placeholder.svg'),
-        ], $copies);
+        $records = array_map(function (CollectionRecord $copy): array {
+            $payload = $copy->payload;
+            $cover = $payload['cover'] ?? '/images/record-placeholder.svg';
+
+            return [
+                ...Arr::only($payload, [
+                    'artist', 'artists', 'title', 'displayTitle', 'year', 'originalYear',
+                    'label', 'catalogNumber', 'country', 'format', 'genres', 'styles', 'cover', 'coverPreview', 'tracks',
+                    'appleMusicUrl', 'appleMusicSearch', 'spotifyUrl', 'spotifySearch',
+                    'bandcampUrl', 'bandcampSearch',
+                ]),
+                'id' => $copy->discogs_release_id, 'instanceId' => $copy->instance_id,
+                'publicId' => $copy->public_id,
+                'addedAt' => $copy->added_at->toIso8601String(),
+                'mediaFormats' => $copy->formats(),
+                'cover' => filled($cover) && $cover !== '/images/record-placeholder.svg'
+                    ? route('shelf.cover', $copy, false)
+                    : $cover,
+            ];
+        }, $copies);
 
         return array_map(
             fn (array $record, CollectionRecord $copy): array => $this->summary($record, $copy->url(false)),

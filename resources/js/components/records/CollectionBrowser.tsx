@@ -1,13 +1,6 @@
 import '../../../css/collection-motion.css';
 
-import {
-    useDeferredValue,
-    useEffect,
-    useImperativeHandle,
-    useMemo,
-    useRef,
-} from 'react';
-import type { Ref } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 
 import { animateCollectionChange } from '@/components/records/animateCollectionChange';
@@ -25,11 +18,6 @@ import type {
     CollectionRecordSummary,
 } from '@/components/records/types';
 
-export type CollectionBrowserHandle = {
-    /** Shows every record by an artist, then moves scroll and focus to the result. */
-    showArtist: (artist: string) => void;
-};
-
 type CollectionBrowserProps = {
     browseBasePath?: string;
     browse: BrowseState;
@@ -37,7 +25,6 @@ type CollectionBrowserProps = {
     onSelect: (record: CollectionRecordSummary, source: HTMLElement) => void;
     records: CollectionRecordSummary[];
     transitionRecordId: number | null;
-    ref?: Ref<CollectionBrowserHandle>;
 };
 
 function resultsAnnouncement(
@@ -58,7 +45,6 @@ export function CollectionBrowser({
     onSelect,
     records,
     transitionRecordId,
-    ref,
 }: CollectionBrowserProps) {
     const browser = useRef<HTMLElement>(null);
     const heading = useRef<HTMLHeadingElement>(null);
@@ -76,24 +62,6 @@ export function CollectionBrowser({
     const { groups, activeGroup } = view;
 
     useEffect(() => () => stopAnimation.current?.(), []);
-
-    useImperativeHandle(ref, () => ({
-        showArtist(artist: string) {
-            stopAnimation.current?.();
-            flushSync(() =>
-                onBrowse({
-                    mode: 'artist',
-                    group: artist,
-                    query: '',
-                    visibleCount: 25,
-                }),
-            );
-            browser.current?.scrollIntoView({
-                behavior: motionScrollBehavior(),
-            });
-            heading.current?.focus({ preventScroll: true });
-        },
-    }));
 
     function scrollToCollection() {
         heading.current?.parentElement?.scrollIntoView({

@@ -3,7 +3,6 @@ import { collectionAddedDate } from '@/components/records/collectionDates';
 import type { CSSProperties, ReactNode } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 
-import { useRecordDetails } from '@/components/records/useRecordDetails';
 import { AppleIcon } from '@/components/records/AppleIcon';
 import { SpotifyIcon } from '@/components/records/SpotifyIcon';
 import { RecordLinerNotes } from '@/components/records/RecordLinerNotes';
@@ -18,20 +17,15 @@ export function RecordDetails({
     record: summary,
     onArtist,
     titleId,
-    details: supplied,
+    details: record,
 }: {
     actions?: ReactNode;
     record: CollectionRecordSummary;
-    details?: CollectionRecord;
+    details: CollectionRecord;
     onArtist?: (artist: string) => void;
     titleId: string;
 }) {
-    const { details, error, retry } = useRecordDetails(
-        summary.publicId,
-        supplied,
-    );
-    const record = details ?? summary;
-    const tracks = details?.tracks ?? [];
+    const tracks = record.tracks;
     const addedDate = collectionAddedDate(record);
     const bandcampUrl =
         record.bandcampSearch === false
@@ -132,37 +126,13 @@ export function RecordDetails({
                 <div className="tracks-heading">
                     <h2>Tracks</h2>
                 </div>
-                <div role="status">
-                    {error && (
-                        <p className="tracks-unavailable">
-                            Couldn’t load the tracks.{' '}
-                            <button onClick={retry} type="button">
-                                Try again
-                            </button>
-                        </p>
-                    )}
-                </div>
                 <ol
                     style={
                         {
                             '--track-count': summary.trackTitles.length,
                         } as CSSProperties
                     }
-                    aria-busy={!details && !error}
                 >
-                    {!details &&
-                        !error &&
-                        summary.trackTitles.map((title, index) => (
-                            <li
-                                className="track-placeholder"
-                                key={`${index}-${title}`}
-                            >
-                                <span className="track-position">
-                                    {String(index + 1).padStart(2, '0')}
-                                </span>
-                                <span className="track-name">{title}</span>
-                            </li>
-                        ))}
                     {tracks.map((track, index) => (
                         <li key={`${index}-${track.position}-${track.title}`}>
                             <span className="track-position">
@@ -180,13 +150,13 @@ export function RecordDetails({
                         </li>
                     ))}
                 </ol>
-                {details && tracks.length === 0 && (
+                {tracks.length === 0 && (
                     <p className="tracks-unavailable">
                         No tracklist available for this release.
                     </p>
                 )}
             </div>
-            {details && <RecordLinerNotes key={record.id} record={details} />}
+            <RecordLinerNotes key={record.id} record={record} />
         </>
     );
 }

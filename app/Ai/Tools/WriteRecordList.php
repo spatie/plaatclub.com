@@ -69,21 +69,26 @@ class WriteRecordList implements Approvable, Tool
             }
             $data['visibility'] ??= 'only_me';
             $data['list'] = null;
-        } else {
-            if (blank($data['list'] ?? null)) {
-                throw ValidationException::withMessages(['list' => 'Name the exact list you want to change.']);
-            }
-            $matches = RecordList::query()->where('user_id', $this->user->id)
-                ->where(fn ($query) => $query->where('name', $data['list'])
-                    ->when(Str::isUuid($data['list']), fn ($query) => $query->orWhere('public_id', $data['list'])))->limit(2)->get();
-            if ($matches->count() !== 1) {
-                throw ValidationException::withMessages(['list' => 'That list is unavailable or its name is ambiguous. Read your lists and use its exact public UUID.']);
-            }
-            $data['list'] = $matches->first()->public_id;
-            $data['currentName'] = $matches->first()->name;
-            $data['currentVisibility'] = $matches->first()->visibility;
-            $data['state'] = $this->state($matches->first());
+
+            return $data;
         }
+
+        if (blank($data['list'] ?? null)) {
+            throw ValidationException::withMessages(['list' => 'Name the exact list you want to change.']);
+        }
+
+        $matches = RecordList::query()->where('user_id', $this->user->id)
+            ->where(fn ($query) => $query->where('name', $data['list'])
+                ->when(Str::isUuid($data['list']), fn ($query) => $query->orWhere('public_id', $data['list'])))->limit(2)->get();
+        if ($matches->count() !== 1) {
+            throw ValidationException::withMessages(['list' => 'That list is unavailable or its name is ambiguous. Read your lists and use its exact public UUID.']);
+        }
+
+        $list = $matches->first();
+        $data['list'] = $list->public_id;
+        $data['currentName'] = $list->name;
+        $data['currentVisibility'] = $list->visibility;
+        $data['state'] = $this->state($list);
 
         return $data;
     }

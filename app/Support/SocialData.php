@@ -27,7 +27,8 @@ class SocialData
 
         $owner = $request->user()?->id === $record->user_id;
         $comments = $record->comments()->with('user')->oldest('id')->paginate(30, ['*'], 'commentsPage')->withQueryString();
-        $payload = Arr::only($record->payload, [
+        $recordData = $record->payload;
+        $payload = Arr::only($recordData, [
             'id', 'instanceId', 'artist', 'artists', 'title', 'displayTitle', 'edition',
             'year', 'originalYear', 'originalReleaseDate', 'pressingReleaseDate', 'addedAt',
             'label', 'catalogNumber', 'format', 'mediaFormats', 'genres', 'styles', 'cover',
@@ -39,7 +40,7 @@ class SocialData
         }
         $payload['tracks'] = array_map(fn (array $track) => Arr::only($track, [
             'position', 'title', 'artist', 'duration', 'appleMusicUrl', 'appleMusicSearch', 'spotifyUrl', 'spotifySearch',
-        ]), $record->payload['tracks'] ?? []);
+        ]), $recordData['tracks'] ?? []);
 
         $viewer = $request->user();
 
@@ -114,9 +115,11 @@ class SocialData
     /** @return array{cover: string, title: string, url: string} */
     public static function artwork(CollectionRecord $record): array
     {
+        $payload = $record->payload;
+
         return [
-            'cover' => $record->payload['cover'],
-            'title' => $record->payload['artist'].' — '.$record->payload['displayTitle'],
+            'cover' => $payload['cover'],
+            'title' => $payload['artist'].' — '.$payload['displayTitle'],
             'url' => $record->url(false),
         ];
     }

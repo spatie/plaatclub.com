@@ -6,7 +6,6 @@ use App\Models\CollectionRecord;
 use App\Models\RecordList;
 use App\Models\RecordListEntry;
 use App\Models\User;
-use Illuminate\Support\Arr;
 
 class ListRecords
 {
@@ -50,7 +49,7 @@ class ListRecords
         $summaries = app(RecordCollection::class)->profileSummaries($copies);
 
         return array_map(fn (array $summary, RecordListEntry $entry): array => [
-            ...Arr::except($summary, ['shareUrl']),
+            ...$summary,
             'entryPublicId' => $entry->public_id, 'releaseId' => $entry->release_id,
             'catalogNumber' => $entry->release->catalog_number ?? '',
             'discogsUrl' => 'https://www.discogs.com/release/'.$entry->release_id,
