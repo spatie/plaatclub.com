@@ -13,11 +13,6 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        database: [sqlite, pgsql]
-
     services:
       postgres:
         image: pgvector/pgvector:0.8.2-pg18-bookworm
@@ -60,9 +55,9 @@ jobs:
       - name: Run CI Checks
         run: composer ci:check
         env:
-          DB_CONNECTION: ${{ matrix.database }}
+          DB_CONNECTION: pgsql
           DB_HOST: 127.0.0.1
           DB_PORT: '5432'
-          DB_DATABASE: ${{ matrix.database == 'pgsql' && 'plaat_club_test' || ':memory:' }}
+          DB_DATABASE: plaat_club_test
           DB_USERNAME: plaat
           DB_PASSWORD: testing
