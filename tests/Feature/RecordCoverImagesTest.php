@@ -7,6 +7,7 @@ use App\Jobs\EnrichRelease;
 use App\Jobs\GenerateRecordCoverPreview;
 use App\Jobs\SyncUserCollection;
 use App\Models\CollectionRecord;
+use App\Models\RecordList;
 use App\Support\RecordCollection;
 use App\Support\RecordCoverImages;
 use Illuminate\Http\Client\RequestException;
@@ -107,6 +108,58 @@ it('revokes access to cached artwork when a friendship ends', function () {
     $friendship->delete();
     $this->get($url)->assertNotFound();
     $this->actingAs($owner)->get($url)->assertOk();
+});
+
+it('serves bounded aspect-preserving WebP covers without changing originals or enlarging small images', function (int $sourceWidth, int $sourceHeight, array $expectedSizes) {
+    $owner = socialUser('responsivecover', 'everyone');
+    $record = socialRecord($owner);
+    $image = imagecreatetruecolor($sourceWidth, $sourceHeight);
+    imagefilledrectangle($image, 0, 0, intdiv($sourceWidth, 2) - 1, $sourceHeight - 1, imagecolorallocate($image, 200, 40, 80));
+    imagefilledrectangle($image, intdiv($sourceWidth, 2), 0, $sourceWidth - 1, $sourceHeight - 1, imagecolorallocate($image, 20, 80, 160));
+    ob_start();
+    imagejpeg($image, null, 95);
+    $bytes = ob_get_clean();
+    $this->disk->put('records/123.jpg', $bytes);
+    app(StoreCollectionRecordAction::class)->execute($record, ['payload' => [...$record->payload, 'cover' => $this->disk->url('records/123.jpg')]]);
+    $url = route('shelf.cover', $record, false);
+
+    foreach ($expectedSizes as $width => $expected) {
+        $response = $this->get($url.'?width='.$width)->assertOk()->assertHeader('Content-Type', 'image/webp');
+        $dimensions = getimagesizefromstring($response->getContent());
+        expect([$dimensions[0], $dimensions[1]])->toBe($expected)
+            ->and(strlen($response->getContent()))->toBeLessThan(strlen($bytes))
+            ->and($response->headers->get('Cache-Control'))->toContain('private', 'no-store');
+    }
+    $this->get($url)->assertOk()->assertHeader('Content-Type', 'image/jpeg')->assertContent($bytes);
+    $this->get($url.'?width=999')->assertOk()->assertHeader('Content-Type', 'image/jpeg')->assertContent($bytes);
+    Http::assertNothingSent();
+})->with([
+    'landscape' => [960, 480, [320 => [320, 160], 640 => [640, 320], 1200 => [960, 480]]],
+    'portrait' => [480, 960, [320 => [320, 640], 640 => [480, 960], 1200 => [480, 960]]],
+]);
+
+it('rechecks collection and list audiences before serving shared cached WebP variants', function () {
+    $owner = socialUser('variantowner', 'friends');
+    $friend = socialUser('variantfriend');
+    $friendship = socialFriends($owner, $friend);
+    $record = socialRecord($owner);
+    $list = RecordList::query()->create(['user_id' => $owner->id, 'name' => 'Private variants', 'visibility' => 'friends']);
+    $list->records()->attach($record, ['position' => 0]);
+    $entry = $list->entries()->firstOrFail();
+    $urls = [
+        route('shelf.cover', [$record, 'width' => 320], false),
+        route('lists.entries.cover', [$list, $entry, 'width' => 320], false),
+        route('lists.cover', [$list, $record, 'width' => 320], false),
+    ];
+    foreach ($urls as $url) {
+        $this->actingAs($friend)->get($url)->assertOk()->assertHeader('Content-Type', 'image/webp');
+    }
+    $friendship->delete();
+    foreach ($urls as $url) {
+        $this->get($url)->assertNotFound();
+        $this->actingAs($owner)->get($url)->assertOk()->assertHeader('Content-Type', 'image/webp');
+        $this->actingAs($friend);
+    }
 });
 
 it('reads stored artwork locally instead of making a cross-origin storage request', function () {

@@ -92,6 +92,10 @@ class RecordReleaseDates
      */
     public function enrich(array $records): array
     {
+        if ($records === []) {
+            return [];
+        }
+
         $dates = RecordReleaseDate::query()
             ->whereIn('discogs_release_id', array_column($records, 'id'))
             ->get()

@@ -8,7 +8,6 @@ use App\Support\RecordCoverImages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Cache;
 
 class ListRecordCoversController extends Controller
 {
@@ -22,8 +21,6 @@ class ListRecordCoversController extends Controller
             return redirect('/images/record-placeholder.svg');
         }
 
-        $bytes = Cache::store('images')->remember('record-cover:'.hash('sha256', $source), now()->addDay(), fn () => $images->read($source));
-
-        return response($bytes)->header('Content-Type', 'image/jpeg');
+        return $images->response($source, $request->integer('width'));
     }
 }

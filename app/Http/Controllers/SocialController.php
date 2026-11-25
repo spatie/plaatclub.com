@@ -75,12 +75,15 @@ class SocialController extends Controller
             ->with(['records' => fn ($query) => $query
                 ->whereHas('user', fn ($query) => $query->whereIn('visibility', ['everyone', 'friends']))
                 ->orderByDesc('added_at')->orderByDesc('id')->limit(5)])
-            ->get()
+            ->get();
+        $summaries = collect(app(RecordCollection::class)->profileSummaries(array_values($friends->flatMap(fn (User $friend) => $friend->records)->all())))
+            ->keyBy('publicId');
+        $friends = $friends
             ->sortByDesc(fn (User $friend) => $friend->records->first()?->added_at?->getTimestamp() ?? PHP_INT_MIN)
             ->map(fn (User $friend) => [
                 'person' => SocialData::person($friend),
                 'visible' => $friend->visibility !== 'only_me',
-                'records' => app(RecordCollection::class)->profileSummaries(array_values($friend->records->all())),
+                'records' => $friend->records->map(fn (CollectionRecord $record) => $summaries[$record->public_id])->all(),
             ])->values()->all();
 
         return Inertia::render('social/FeedPage', [

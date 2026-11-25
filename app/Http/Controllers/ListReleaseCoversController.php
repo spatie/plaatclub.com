@@ -10,7 +10,6 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 class ListReleaseCoversController extends Controller
@@ -25,11 +24,9 @@ class ListReleaseCoversController extends Controller
                 return redirect('/images/record-placeholder.svg');
             }
 
-            $bytes = Cache::store('images')->remember('record-cover:'.hash('sha256', $source), now()->addDay(), fn () => $images->read($source));
+            return $images->response($source, $request->integer('width'));
         } catch (ConnectionException|RequestException|RuntimeException) {
             return redirect('/images/record-placeholder.svg');
         }
-
-        return response($bytes)->header('Content-Type', 'image/jpeg');
     }
 }

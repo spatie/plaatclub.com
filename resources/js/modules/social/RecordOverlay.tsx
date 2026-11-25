@@ -1,6 +1,8 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     createContext,
+    lazy,
+    Suspense,
     useContext,
     useLayoutEffect,
     useRef,
@@ -12,8 +14,13 @@ import {
     artworkOrigin,
     type SleeveOrigin,
 } from '@/components/records/recordMotion';
-import { SocialRecordView } from '@/modules/social/SocialRecordView';
 import type { SocialProps } from '@/modules/social/types';
+
+const loadRecordView = () =>
+    import('@/modules/social/SocialRecordView').then((module) => ({
+        default: module.SocialRecordView,
+    }));
+const SocialRecordView = lazy(loadRecordView);
 
 export const RecordOverlayContext = createContext<
     (url: string, source?: HTMLElement | null) => void
@@ -77,6 +84,7 @@ export function RecordOverlay({ children }: { children: ReactNode }) {
     }, [opened]);
 
     function open(url: string, element?: HTMLElement | null) {
+        void loadRecordView();
         source.current = element?.closest<HTMLElement>('a, button') ?? null;
         const artwork =
             element?.querySelector<HTMLElement>('.catalog-record-art, img') ??
@@ -117,24 +125,26 @@ export function RecordOverlay({ children }: { children: ReactNode }) {
                 {children}
             </div>
             {overlay && (
-                <SocialRecordView
-                    key={overlay.record.id}
-                    data={overlay}
-                    returnOrigin={() =>
-                        sourceArtwork.current?.isConnected
-                            ? artworkOrigin(sourceArtwork.current)
-                            : null
-                    }
-                    origin={origin}
-                    onReady={() => {
-                        const artwork =
-                            source.current?.querySelector<HTMLElement>(
-                                '.catalog-record-art',
-                            ) ?? sourceArtwork.current;
-                        if (artwork) artwork.style.visibility = 'hidden';
-                    }}
-                    onBack={close}
-                />
+                <Suspense fallback={null}>
+                    <SocialRecordView
+                        key={overlay.record.id}
+                        data={overlay}
+                        returnOrigin={() =>
+                            sourceArtwork.current?.isConnected
+                                ? artworkOrigin(sourceArtwork.current)
+                                : null
+                        }
+                        origin={origin}
+                        onReady={() => {
+                            const artwork =
+                                source.current?.querySelector<HTMLElement>(
+                                    '.catalog-record-art',
+                                ) ?? sourceArtwork.current;
+                            if (artwork) artwork.style.visibility = 'hidden';
+                        }}
+                        onBack={close}
+                    />
+                </Suspense>
             )}
         </RecordOverlayContext>
     );

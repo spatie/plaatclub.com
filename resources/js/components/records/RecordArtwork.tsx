@@ -24,6 +24,8 @@ export function RecordArtwork({
     title: string;
     mediaFormat?: string;
 }) {
+    const responsive = cover.startsWith('/') && cover.endsWith('/cover');
+
     return (
         <span className="catalog-record-art">
             <span
@@ -44,6 +46,16 @@ export function RecordArtwork({
                     ref={revealCover}
                     onLoad={(event) => revealCover(event.currentTarget)}
                     src={cover}
+                    srcSet={
+                        responsive
+                            ? `${cover}?width=320 320w, ${cover}?width=640 640w, ${cover}?width=1200 1200w`
+                            : undefined
+                    }
+                    sizes={
+                        responsive
+                            ? '(max-width: 600px) 45vw, 300px'
+                            : undefined
+                    }
                     width={600}
                 />
             </span>

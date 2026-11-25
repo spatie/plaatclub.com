@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -53,6 +55,34 @@ class RecordCoverImages
     public function read(string $source): string
     {
         return $this->asJpeg($this->sourceBytes($source));
+    }
+
+    public function response(string $source, int $width = 0): Response
+    {
+        $width = in_array($width, [320, 640, 1200], true) ? $width : 0;
+        $key = $width === 0 ? 'record-cover:' : "record-cover:webp-v1:{$width}:";
+        $bytes = Cache::store('images')->remember($key.hash('sha256', $source), now()->addDay(), function () use ($source, $width): string {
+            $bytes = $this->read($source);
+            if ($width === 0) {
+                return $bytes;
+            }
+
+            $image = imagecreatefromstring($bytes);
+            if (! $image) {
+                throw new RuntimeException('The cover could not be decoded.');
+            }
+
+            $scale = min(1, $width / imagesx($image));
+            $thumbnail = imagecreatetruecolor(max(1, (int) round(imagesx($image) * $scale)), max(1, (int) round(imagesy($image) * $scale)));
+            imagecopyresampled($thumbnail, $image, 0, 0, 0, 0, imagesx($thumbnail), imagesy($thumbnail), imagesx($image), imagesy($image));
+
+            ob_start();
+            imagewebp($thumbnail, null, 80);
+
+            return ob_get_clean() ?: throw new RuntimeException('The cover could not be converted.');
+        });
+
+        return response($bytes)->header('Content-Type', $width === 0 ? 'image/jpeg' : 'image/webp');
     }
 
     public function preview(string $source): string

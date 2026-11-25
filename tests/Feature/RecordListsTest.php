@@ -289,9 +289,9 @@ it('previews the first four ordered covers of each owned list while counting all
     $this->actingAs($owner)->get('/lists')->assertInertia(fn (Assert $page) => $page
         ->has('lists', 3)
         ->where('lists.0.publicId', $list->public_id)->where('lists.0.count', 6)
-        ->where('lists.0.covers', $list->entries()->limit(4)->get()->map(fn (RecordListEntry $entry) => route('lists.entries.cover', [$list, $entry], false))->all())
+        ->where('lists.0.covers', $list->entries()->limit(4)->get()->map(fn (RecordListEntry $entry) => route('lists.entries.cover', [$list, $entry, 'width' => 320], false))->all())
         ->where('lists.1.publicId', $small->public_id)->where('lists.1.count', 1)
-        ->where('lists.1.covers', [route('lists.entries.cover', [$small, $small->entries()->first()], false)])
+        ->where('lists.1.covers', [route('lists.entries.cover', [$small, $small->entries()->first(), 'width' => 320], false)])
         ->where('lists.2.publicId', $empty->public_id)->where('lists.2.count', 0)->has('lists.2.covers', 0));
 });
 
@@ -311,7 +311,7 @@ it('previews the first four distinct releases in track order while counting ever
     $this->actingAs($owner)->get('/lists')->assertInertia(fn (Assert $page) => $page
         ->where('lists.0.count', 9)
         ->where('lists.0.covers', array_map(
-            fn (int $position) => route('lists.entries.cover', [$list, $entries[$position]], false),
+            fn (int $position) => route('lists.entries.cover', [$list, $entries[$position], 'width' => 320], false),
             [0, 5, 6, 7],
         )));
 });
@@ -337,7 +337,7 @@ it('shows a placeholder for listed records whose artwork is not available yet', 
     $list->records()->attach($copy, ['position' => 0]);
 
     $this->get('/collections?tab=lists')->assertInertia(fn (Assert $page) => $page
-        ->where('lists.data.0.covers.0', route('lists.entries.cover', [$list, $list->entries()->first()], false)));
+        ->where('lists.data.0.covers.0', route('lists.entries.cover', [$list, $list->entries()->first(), 'width' => 320], false)));
     $this->get(route('lists.cover', [$list, $copy], false))->assertRedirect('/images/record-placeholder.svg');
     $details = $this->getJson(route('lists.record', [$list, $copy], false))->assertOk();
     $this->get($details->json('cover'))->assertRedirect('/images/record-placeholder.svg');

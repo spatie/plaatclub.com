@@ -13,7 +13,7 @@ it('welcomes visitors with linked public artwork and private response headers', 
     $response = $this->get(route('home'));
 
     $response->assertOk()->assertInertia(fn (Assert $page) => $page->component('social/HomePage')
-        ->where('artwork.0.cover', $record->payload['cover'])
+        ->where('artwork.0.cover', route('shelf.cover', [$record, 'width' => 640], false))
         ->where('artwork.0.url', $record->url(false))
         ->missing('collectors'));
 
@@ -42,7 +42,7 @@ it('features hand-picked public lists in editorial order and respects privacy im
         ->where('featuredLists.0.publicId', $first->public_id)
         ->where('featuredLists.0.description', 'From the BBC programme.')
         ->where('featuredLists.0.count', 1)
-        ->where('featuredLists.0.covers.0', route('lists.entries.cover', [$first, $first->entries()->first()], false))
+        ->where('featuredLists.0.covers.0', route('lists.entries.cover', [$first, $first->entries()->first(), 'width' => 320], false))
         ->where('featuredLists.1.publicId', $second->public_id))
         ->assertDontSee('Not for discovery');
 
@@ -109,9 +109,10 @@ it('uses only live public records for linked artwork and never falls back to the
     $expectedCount = $path === '/' ? 6 : 12;
     expect($artwork)->toHaveCount($expectedCount)->and($artwork->pluck('cover')->unique())->toHaveCount($expectedCount);
     foreach ($artwork as $item) {
-        $record = $records->firstWhere('payload.cover', $item['cover']);
+        $record = $records->first(fn ($record) => $record->url(false) === $item['url']);
         expect($record)->not->toBeNull()
             ->and($item['url'])->toBe($record->url(false))
+            ->and($item['cover'])->toBe(route('shelf.cover', [$record, 'width' => 640], false))
             ->and($item['title'])->toBe($record->payload['artist'].' — '.$record->payload['displayTitle']);
     }
     $link = $artwork->first()['url'];
@@ -175,7 +176,7 @@ it('removes collections and their artwork from discovery immediately when privac
 
     foreach (['/', '/collections'] as $path) {
         $this->get($path)->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where($path === '/' ? 'artwork.0.cover' : 'collectors.data.0.records.0.cover', '/images/discovery-only-cover.jpg'));
+            ->where($path === '/' ? 'artwork.0.cover' : 'collectors.data.0.records.0.cover', route('shelf.cover', [$record, 'width' => 640], false)));
     }
     $owner->update(['visibility' => $visibility]);
     foreach (['/', '/collections'] as $path) {

@@ -97,7 +97,7 @@ class SocialData
             'publicId' => $list->public_id,
             'owner' => self::person($list->user),
             'count' => $list->records_count,
-            'covers' => $list->entries->map(fn (RecordListEntry $entry) => route('lists.entries.cover', [$list, $entry], false))->all(),
+            'covers' => $list->entries->map(fn (RecordListEntry $entry) => route('lists.entries.cover', [$list, $entry, 'width' => 320], false))->all(),
         ];
     }
 
@@ -118,7 +118,7 @@ class SocialData
         $payload = $record->payload;
 
         return [
-            'cover' => $payload['cover'],
+            'cover' => route('shelf.cover', [$record, 'width' => 640], false),
             'title' => $payload['artist'].' — '.$payload['displayTitle'],
             'url' => $record->url(false),
         ];
