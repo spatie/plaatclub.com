@@ -1,0 +1,21 @@
+.social-app .record-load-status {
+    width: min(460px, calc(100vw - 40px));
+    margin: auto;
+    padding: 28px;
+    border: 1px solid var(--ink);
+    background: var(--cream);
+    color: var(--ink);
+    font: inherit;
+}
+
+.social-app .record-load-status::backdrop {
+    background: #1e1e1566;
+}
+
+.social-app .record-load-status h2 {
+    margin: 0 0 20px;
+}
+
+.social-app .record-load-status p {
+    margin: 0 0 24px;
+}

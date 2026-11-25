@@ -4,6 +4,7 @@ import {
     lazy,
     Suspense,
     useContext,
+    useId,
     useLayoutEffect,
     useRef,
     useState,
@@ -15,12 +16,64 @@ import {
     type SleeveOrigin,
 } from '@/components/records/recordMotion';
 import type { SocialProps } from '@/modules/social/types';
+import '../../../css/record-overlay.css';
 
 const loadRecordView = () =>
-    import('@/modules/social/SocialRecordView').then((module) => ({
-        default: module.SocialRecordView,
-    }));
+    import('@/modules/social/SocialRecordView')
+        .then((module) => ({ default: module.SocialRecordView }))
+        .catch(() => ({ default: RecordViewUnavailable }));
 const SocialRecordView = lazy(loadRecordView);
+
+function RecordViewUnavailable({ onBack }: { onBack: () => void }) {
+    return <RecordLoadStatus failed onBack={onBack} />;
+}
+
+function RecordLoadStatus({
+    failed = false,
+    onBack,
+}: {
+    failed?: boolean;
+    onBack: () => void;
+}) {
+    const dialog = useRef<HTMLDialogElement>(null);
+    const titleId = useId();
+
+    useLayoutEffect(() => {
+        const element = dialog.current;
+        element?.showModal();
+        return () => element?.close();
+    }, []);
+
+    return (
+        <dialog
+            ref={dialog}
+            className="record-load-status"
+            aria-labelledby={titleId}
+            onCancel={(event) => {
+                event.preventDefault();
+                onBack();
+            }}
+        >
+            <h2 id={titleId} role={failed ? 'alert' : 'status'}>
+                {failed ? 'Couldn’t open this record' : 'Opening record…'}
+            </h2>
+            {failed && <p>Check your connection, then reload to try again.</p>}
+            <div className="actions">
+                <button className="button secondary" onClick={onBack}>
+                    {failed ? 'Close' : 'Cancel'}
+                </button>
+                {failed && (
+                    <button
+                        className="button"
+                        onClick={() => window.location.reload()}
+                    >
+                        Reload
+                    </button>
+                )}
+            </div>
+        </dialog>
+    );
+}
 
 export const RecordOverlayContext = createContext<
     (url: string, source?: HTMLElement | null) => void
@@ -125,7 +178,7 @@ export function RecordOverlay({ children }: { children: ReactNode }) {
                 {children}
             </div>
             {overlay && (
-                <Suspense fallback={null}>
+                <Suspense fallback={<RecordLoadStatus onBack={close} />}>
                     <SocialRecordView
                         key={overlay.record.id}
                         data={overlay}
