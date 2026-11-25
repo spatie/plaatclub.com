@@ -6,11 +6,27 @@ use App\Models\CollectionRecord;
 use App\Models\RecordList;
 use App\Models\RecordListEntry;
 use App\Models\User;
+use Illuminate\Support\Arr;
 
 class ListRecords
 {
     /** @var array<int, array{releases: list<int>, masters: list<int>}> */
     protected array $ownership = [];
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return list<array<string, mixed>>
+     */
+    public function tracks(array $payload): array
+    {
+        $tracks = array_values($payload['tracks'] ?? []);
+
+        return array_map(fn (array $track, int $index): array => [
+            ...Arr::only($track, ['position', 'title', 'duration', 'appleMusicUrl', 'appleMusicSearch', 'spotifyUrl', 'spotifySearch']),
+            'index' => $index,
+            'artist' => filled($track['artist'] ?? null) ? $track['artist'] : ($payload['artist'] ?? ''),
+        ], $tracks, array_keys($tracks));
+    }
 
     /** @return array<string, mixed> */
     public function ownership(User $owner, int $releaseId, ?int $masterId): array
@@ -50,6 +66,7 @@ class ListRecords
 
         return array_map(fn (array $summary, RecordListEntry $entry): array => [
             ...$summary,
+            'track' => $entry->track,
             'entryPublicId' => $entry->public_id, 'releaseId' => $entry->release_id,
             'catalogNumber' => $entry->release->catalog_number ?? '',
             'discogsUrl' => 'https://www.discogs.com/release/'.$entry->release_id,

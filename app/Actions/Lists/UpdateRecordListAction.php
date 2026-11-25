@@ -4,6 +4,7 @@ namespace App\Actions\Lists;
 
 use App\Models\RecordList;
 use App\Models\User;
+use App\Support\ListRecords;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -20,25 +21,44 @@ class UpdateRecordListAction
         $data = Validator::make($attributes, [
             'name' => ['sometimes', 'required', 'string', 'max:120'],
             'description' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'type' => ['sometimes', 'required', Rule::in([$recordList->type])],
             'visibility' => ['sometimes', 'required', Rule::in(['only_me', 'friends', 'everyone'])],
-            'recordIds' => ['sometimes', 'array', 'list', 'max:1000'],
+            'recordIds' => [$recordList->type === 'tracks' ? 'missing' : 'sometimes', 'array', 'list', 'max:1000'],
             'recordIds.*' => ['required', 'integer', 'distinct', Rule::exists('collection_records', 'id')->where('user_id', $user->id)],
             'recordMode' => ['sometimes', Rule::in(['add', 'remove', 'replace'])],
             'entries' => ['sometimes', 'array', 'list', 'max:1000', 'prohibits:recordIds'],
             'entries.*.entryPublicId' => ['sometimes', 'required', 'uuid', 'distinct'],
             'entries.*.releaseId' => ['required', 'integer', 'min:1', 'max:9999999999'],
+            'entries.*.trackIndex' => [$recordList->type === 'tracks' ? 'required' : 'prohibited', 'integer', 'min:0'],
         ])->validate();
 
         if (array_key_exists('entries', $data)) {
+            $tracks = [];
             foreach ($data['entries'] as $position => $entry) {
+                if ($recordList->type === 'tracks') {
+                    $identity = $entry['releaseId'].':'.$entry['trackIndex'];
+                    if (isset($tracks[$identity])) {
+                        throw ValidationException::withMessages(['entries' => 'This track is already in your list.']);
+                    }
+                    $tracks[$identity] = true;
+                }
                 if (isset($entry['entryPublicId'])) {
-                    if (! $recordList->entries()->where('public_id', $entry['entryPublicId'])->where('release_id', $entry['releaseId'])->exists()) {
+                    $saved = $recordList->entries()->where('public_id', $entry['entryPublicId'])->where('release_id', $entry['releaseId'])->first();
+                    if ($saved === null || ($saved->track['index'] ?? null) !== ($entry['trackIndex'] ?? null)) {
                         throw ValidationException::withMessages(["entries.{$position}.entryPublicId" => 'This entry is not part of this list or does not match this release.']);
                     }
 
                     continue;
                 }
-                app(ImportListReleaseAction::class)->execute($user, $entry['releaseId']);
+                $release = app(ImportListReleaseAction::class)->execute($user, $entry['releaseId']);
+                $data['entries'][$position]['track'] = null;
+                if ($recordList->type === 'tracks') {
+                    $track = app(ListRecords::class)->tracks($release->recordData())[$entry['trackIndex']] ?? null;
+                    if ($track === null) {
+                        throw ValidationException::withMessages(["entries.{$position}.trackIndex" => 'This track is unavailable. Reload the release and choose a track again.']);
+                    }
+                    $data['entries'][$position]['track'] = $track;
+                }
             }
         }
 
@@ -78,7 +98,7 @@ class UpdateRecordListAction
                 foreach ($data['entries'] as $position => $attributes) {
                     $entry = isset($attributes['entryPublicId'])
                         ? $recordList->entries()->where('public_id', $attributes['entryPublicId'])->where('release_id', $attributes['releaseId'])->first()
-                        : $recordList->entries()->make(['release_id' => $attributes['releaseId']]);
+                        : $recordList->entries()->make(['release_id' => $attributes['releaseId'], 'track' => $attributes['track'] ?? null]);
                     if ($entry === null) {
                         throw ValidationException::withMessages(['entries' => 'The list changed. Please reload before saving.']);
                     }

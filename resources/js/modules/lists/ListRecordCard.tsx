@@ -3,9 +3,11 @@ import { ChevronDown, ChevronUp, StickyNote } from 'lucide-react';
 import { useState } from 'react';
 
 import { RecordDetails } from '@/components/records/RecordDetails';
+import { safeExternalUrl } from '@/components/records/discogsText';
 import type { CollectionRecord } from '@/components/records/types';
 import { ListRecordArtwork } from '@/modules/lists/ListRecordArtwork';
 import { RecordOwnership } from '@/modules/lists/RecordOwnership';
+import { TrackListeningLinks } from '@/modules/lists/TrackListeningLinks';
 import type { ListRecord } from '@/modules/lists/types';
 import { FieldError } from '@/modules/social/FieldError';
 
@@ -26,6 +28,10 @@ export function ListRecordCard({
     const [error, setError] = useState(false);
     const [editingNote, setEditingNote] = useState(false);
     const note = useForm({ privateNote: record.privateNote ?? '' });
+    const track = record.track;
+    const title = track?.title ?? record.displayTitle;
+    const artist = track?.artist || record.artist;
+    const discogsUrl = safeExternalUrl(record.discogsUrl);
 
     async function loadDetails() {
         setLoading(true);
@@ -45,8 +51,11 @@ export function ListRecordCard({
     }
 
     return (
-        <li className="list-record-card" id={`record-${record.entryPublicId}`}>
-            {record.copyId !== undefined && (
+        <li
+            className={`list-record-card ${track ? 'list-track-card' : ''}`}
+            id={`record-${record.entryPublicId}`}
+        >
+            {!track && record.copyId !== undefined && (
                 <span id={`record-${record.copyId}`} />
             )}
             <button
@@ -64,25 +73,41 @@ export function ListRecordCard({
                 </span>
                 <ListRecordArtwork record={record} />
                 <span className="picker-record-text">
-                    <strong>{record.displayTitle}</strong>
-                    <span>{record.artist}</span>
-                    <small>
-                        {[record.year, record.format, record.country]
-                            .filter(Boolean)
-                            .join(' · ')}
-                    </small>
-                    {(record.label || record.catalogNumber) && (
+                    <strong>{title}</strong>
+                    <span>{artist}</span>
+                    {track ? (
                         <small>
-                            {[record.label, record.catalogNumber]
-                                .filter(Boolean)
-                                .join(' · ')}
+                            From {record.displayTitle}
+                            {track.duration ? ` · ${track.duration}` : ''}
                         </small>
+                    ) : (
+                        <>
+                            <small>
+                                {[record.year, record.format, record.country]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                            </small>
+                            {(record.label || record.catalogNumber) && (
+                                <small>
+                                    {[record.label, record.catalogNumber]
+                                        .filter(Boolean)
+                                        .join(' · ')}
+                                </small>
+                            )}
+                            {canEdit && <RecordOwnership {...record} />}
+                        </>
                     )}
-                    {canEdit && <RecordOwnership {...record} />}
                 </span>
                 {open ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
-                <span className="sr-only">Tracks and listening links</span>
+                <span className="sr-only">
+                    {track
+                        ? 'Track and release details'
+                        : 'Tracks and listening links'}
+                </span>
             </button>
+            {track && (
+                <TrackListeningLinks track={details?.tracks[0] ?? track} />
+            )}
             {canEdit && (
                 <div className="list-entry-note">
                     {editingNote ? (
@@ -167,10 +192,7 @@ export function ListRecordCard({
                                 {record.privateNote
                                     ? 'Edit private note'
                                     : 'Add private note'}
-                                <span className="sr-only">
-                                    {' '}
-                                    for {record.displayTitle}
-                                </span>
+                                <span className="sr-only"> for {title}</span>
                             </button>
                         </>
                     )}
@@ -181,7 +203,11 @@ export function ListRecordCard({
                 hidden={!open}
                 className="list-record-details"
             >
-                {loading && <p role="status">Loading tracks…</p>}
+                {loading && (
+                    <p role="status">
+                        {track ? 'Loading track details…' : 'Loading tracks…'}
+                    </p>
+                )}
                 {error && (
                     <p role="alert">
                         Couldn’t load this record.{' '}
@@ -194,13 +220,42 @@ export function ListRecordCard({
                         </button>
                     </p>
                 )}
-                {details && (
-                    <RecordDetails
-                        record={record}
-                        details={details}
-                        titleId={`record-title-${record.entryPublicId}`}
-                    />
-                )}
+                {details &&
+                    (track ? (
+                        <div className="list-track-release-details">
+                            <p>
+                                <strong>{record.displayTitle}</strong> ·{' '}
+                                {record.artist}
+                            </p>
+                            <p>
+                                {[
+                                    record.year,
+                                    record.format,
+                                    record.country,
+                                    record.label,
+                                    record.catalogNumber,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                            </p>
+                            {discogsUrl && (
+                                <a
+                                    href={discogsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    View this edition on Discogs ↗
+                                </a>
+                            )}
+                            {canEdit && <RecordOwnership {...record} />}
+                        </div>
+                    ) : (
+                        <RecordDetails
+                            record={record}
+                            details={details}
+                            titleId={`record-title-${record.entryPublicId}`}
+                        />
+                    ))}
             </div>
         </li>
     );

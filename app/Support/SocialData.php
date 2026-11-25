@@ -58,7 +58,7 @@ class SocialData
                 ...($owner ? ['privateNote' => $record->private_note] : []),
                 'canEditNotes' => $owner,
                 'lists' => $viewer?->hasVerifiedEmail()
-                    ? RecordList::query()->where('user_id', $viewer->id)->orderBy('name')
+                    ? RecordList::query()->where('user_id', $viewer->id)->where('type', 'records')->orderBy('name')
                         ->withExists(['entries as contains_record' => fn ($query) => $query->where('release_id', $record->discogs_release_id)])
                         ->get()->map(fn (RecordList $list) => ['id' => $list->id, 'publicId' => $list->public_id, 'name' => $list->name, 'visibility' => $list->visibility, 'containsRecord' => $list->getAttribute('contains_record')])->all()
                     : [],
@@ -93,7 +93,7 @@ class SocialData
     public static function listPreview(RecordList $list): array
     {
         return [
-            ...$list->only(['id', 'name', 'description', 'visibility']),
+            ...$list->only(['id', 'name', 'description', 'visibility', 'type']),
             'publicId' => $list->public_id,
             'owner' => self::person($list->user),
             'count' => $list->records_count,

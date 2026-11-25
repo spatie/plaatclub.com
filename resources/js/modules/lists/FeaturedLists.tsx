@@ -23,7 +23,7 @@ export function FeaturedLists({
                     <p className="eyebrow">Hand-picked listening</p>
                     <h2 id="featured-lists-title">{heading}</h2>
                     <p>
-                        Favourite records and unexpected discoveries from
+                        Favourite records, mixtapes and discoveries from
                         musicians and selectors.
                     </p>
                 </div>

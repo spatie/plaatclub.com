@@ -9,6 +9,8 @@ import { VisibilityBadge } from '@/modules/social/VisibilityPicker';
 import '../../../css/record-lists.css';
 
 export function ListPage({ list, records }: ListProps) {
+    const isTrackList = list.type === 'tracks';
+    const itemNames = isTrackList ? 'tracks' : 'records';
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [shareStatus, setShareStatus] = useState<'copied' | 'manual' | null>(
@@ -53,7 +55,11 @@ export function ListPage({ list, records }: ListProps) {
                     <VisibilityBadge value={list.visibility} />
                     <span>
                         {records.length}{' '}
-                        {records.length === 1 ? 'record' : 'records'}
+                        {records.length === 1
+                            ? isTrackList
+                                ? 'track'
+                                : 'record'
+                            : itemNames}
                     </span>
                     {list.visibility !== 'only_me' && (
                         <button
@@ -69,7 +75,7 @@ export function ListPage({ list, records }: ListProps) {
                             className="button secondary"
                             href={`/lists/${list.publicId}/edit`}
                         >
-                            Edit list & pick records
+                            Edit list & pick {itemNames}
                         </Link>
                     )}
                 </div>
@@ -96,7 +102,11 @@ export function ListPage({ list, records }: ListProps) {
             {list.removedCount > 0 && (
                 <p className="notice">
                     {list.removedCount}{' '}
-                    {list.removedCount === 1 ? 'record was' : 'records were'}{' '}
+                    {list.removedCount === 1
+                        ? isTrackList
+                            ? 'track was'
+                            : 'record was'
+                        : `${itemNames} were`}{' '}
                     removed from your Discogs collection and no longer appear
                     here. Edit and save the list to acknowledge.
                 </p>
@@ -104,21 +114,25 @@ export function ListPage({ list, records }: ListProps) {
             <div
                 className={`list-content ${list.canEdit ? 'with-sharing' : ''}`}
             >
-                <section aria-label="Records in this list">
+                <section
+                    aria-label={`${isTrackList ? 'Tracks' : 'Records'} in this list`}
+                >
                     {records.length === 0 ? (
                         <div className="list-empty">
                             <h2>A little room for something good.</h2>
                             <p>
                                 {list.canEdit
-                                    ? 'Pick records from your collection or search Discogs. You don’t need to own them yet.'
-                                    : 'No records in this selection yet.'}
+                                    ? isTrackList
+                                        ? 'Find a release in your collection or on Discogs, then choose the tracks for your mix.'
+                                        : 'Pick records from your collection or search Discogs. You don’t need to own them yet.'
+                                    : `No ${itemNames} in this selection yet.`}
                             </p>
                             {list.canEdit && (
                                 <Link
                                     className="button"
                                     href={`/lists/${list.publicId}/edit`}
                                 >
-                                    Pick records
+                                    Pick {itemNames}
                                 </Link>
                             )}
                         </div>

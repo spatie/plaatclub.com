@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property ?string $description
  * @property string $visibility
+ * @property string $type
  * @property User $user
  */
 class RecordList extends Model
@@ -66,7 +67,13 @@ class RecordList extends Model
     public static function previews(?User $viewer): Builder
     {
         return self::visibleTo($viewer)
-            ->with(['user', 'entries' => fn ($query) => $query->whereNotNull('release_id')->limit(4)])
+            ->with(['user', 'entries' => fn ($query) => $query->whereNotNull('release_id')
+                ->whereNotExists(fn ($query) => $query->selectRaw('1')
+                    ->from('record_list_entries as earlier')
+                    ->whereColumn('earlier.record_list_id', 'record_list_entries.record_list_id')
+                    ->whereColumn('earlier.release_id', 'record_list_entries.release_id')
+                    ->whereRaw('(earlier.position, earlier.id) < (record_list_entries.position, record_list_entries.id)'))
+                ->limit(4)])
             ->withCount(['entries as records_count' => fn ($query) => $query->whereNotNull('release_id')])->latest('updated_at')->orderByDesc('id');
     }
 }

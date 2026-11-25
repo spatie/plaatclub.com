@@ -17,8 +17,10 @@ import { Check, Plus, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { ListRecordArtwork } from '@/modules/lists/ListRecordArtwork';
+import { listEntryIdentity } from '@/modules/lists/listEntryIdentity';
 import { RecordOwnership } from '@/modules/lists/RecordOwnership';
 import { SortableListRecord } from '@/modules/lists/SortableListRecord';
+import { TrackPicker } from '@/modules/lists/TrackPicker';
 import type { ListEditProps, PickerRecord } from '@/modules/lists/types';
 import { VisibilityPicker } from '@/modules/social/VisibilityPicker';
 import '../../../css/record-lists.css';
@@ -44,6 +46,9 @@ export function ListEditPage({
     const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const cancelSearch = useRef<(() => void) | null>(null);
     const base = `/lists/${list.publicId}`;
+    const isTrackList = list.type === 'tracks';
+    const itemName = isTrackList ? 'track' : 'record';
+    const itemNames = isTrackList ? 'tracks' : 'records';
     const selected = form.data.selection;
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -123,20 +128,26 @@ export function ListEditPage({
 
     return (
         <>
-            <Head title={`Pick records · ${list.name}`} />
+            <Head title={`Pick ${itemNames} · ${list.name}`} />
             <div className="list-editor-heading">
                 <Link href={base}>← Back to list</Link>
-                <p className="page-eyebrow">Edit your list</p>
+                <p className="page-eyebrow">
+                    Edit your {isTrackList ? 'track' : 'record'} list
+                </p>
                 <h1>{list.name}</h1>
                 <p>
-                    Pick records from your collection or Discogs, then drag them
-                    into order. Adding to a list never adds to your collection.
+                    {isTrackList
+                        ? 'Find a release in your collection or on Discogs, choose individual tracks, then arrange your mix.'
+                        : 'Pick records from your collection or Discogs, then drag them into order.'}{' '}
+                    Adding to a list never adds to your collection.
                 </p>
             </div>
             {list.removedCount > 0 && (
                 <p className="notice">
                     {list.removedCount}{' '}
-                    {list.removedCount === 1 ? 'record was' : 'records were'}{' '}
+                    {list.removedCount === 1
+                        ? `${itemName} was`
+                        : `${itemNames} were`}{' '}
                     removed from your Discogs collection and no longer appear in
                     this list. Save to acknowledge.
                 </p>
@@ -144,20 +155,36 @@ export function ListEditPage({
             <form
                 onSubmit={(event) => {
                     event.preventDefault();
+                    if (form.processing) return;
                     if (searchTimer.current) clearTimeout(searchTimer.current);
                     cancelSearch.current?.();
                     form.transform(({ selection, ...data }) => ({
                         ...data,
                         entries: selection.map(
-                            ({ entryPublicId, releaseId }) => ({
+                            ({ entryPublicId, releaseId, track }) => ({
                                 entryPublicId,
                                 releaseId,
+                                ...(isTrackList
+                                    ? { trackIndex: track?.index }
+                                    : {}),
                             }),
                         ),
                     }));
                     form.patch(base);
                 }}
             >
+                {Object.keys(form.errors).length > 0 && (
+                    <div className="notice list-form-errors" role="alert">
+                        <strong>Your list hasn’t been saved.</strong>
+                        <ul>
+                            {Object.entries(form.errors).map(
+                                ([field, message]) => (
+                                    <li key={field}>{message}</li>
+                                ),
+                            )}
+                        </ul>
+                    </div>
+                )}
                 <section
                     className="list-edit-metadata"
                     aria-label="List settings"
@@ -169,6 +196,7 @@ export function ListEditPage({
                                 id="name"
                                 required
                                 maxLength={120}
+                                aria-invalid={!!form.errors.name}
                                 value={form.data.name}
                                 onChange={(event) =>
                                     form.setData('name', event.target.value)
@@ -183,6 +211,7 @@ export function ListEditPage({
                                 id="description"
                                 rows={2}
                                 maxLength={2000}
+                                aria-invalid={!!form.errors.description}
                                 value={form.data.description}
                                 onChange={(event) =>
                                     form.setData(
@@ -215,7 +244,7 @@ export function ListEditPage({
                         aria-pressed={!review}
                         onClick={() => setReview(false)}
                     >
-                        1. Add records
+                        1. Add {itemNames}
                     </button>
                     <button
                         type="button"
@@ -231,7 +260,7 @@ export function ListEditPage({
                         aria-label="Find records"
                     >
                         <h2 className="picker-step-title">
-                            <span>1</span> Add records
+                            <span>1</span> Add {itemNames}
                         </h2>
                         <p className="muted">
                             Your picks stay while you switch sources and browse.
@@ -366,30 +395,47 @@ export function ListEditPage({
                                                 )}
                                             <RecordOwnership {...record} />
                                         </div>
-                                        <button
-                                            className={`picker-add ${added ? 'is-added' : ''}`}
-                                            type="button"
-                                            disabled={
-                                                added ||
-                                                searching ||
-                                                form.processing ||
-                                                selected.length >= 1000
-                                            }
-                                            aria-label={`${added ? 'Added' : 'Add'} ${record.displayTitle} by ${record.artist}`}
-                                            onClick={() =>
-                                                form.setData('selection', [
-                                                    ...selected,
-                                                    record,
-                                                ])
-                                            }
-                                        >
-                                            {added ? (
-                                                <Check size={17} />
-                                            ) : (
-                                                <Plus size={17} />
-                                            )}
-                                            {added ? 'Added' : 'Add'}
-                                        </button>
+                                        {isTrackList ? (
+                                            <TrackPicker
+                                                listId={list.publicId}
+                                                record={record}
+                                                selected={selected}
+                                                disabled={
+                                                    searching || form.processing
+                                                }
+                                                onAdd={(entry) =>
+                                                    form.setData('selection', [
+                                                        ...selected,
+                                                        entry,
+                                                    ])
+                                                }
+                                            />
+                                        ) : (
+                                            <button
+                                                className={`picker-add ${added ? 'is-added' : ''}`}
+                                                type="button"
+                                                disabled={
+                                                    added ||
+                                                    searching ||
+                                                    form.processing ||
+                                                    selected.length >= 1000
+                                                }
+                                                aria-label={`${added ? 'Added' : 'Add'} ${record.displayTitle} by ${record.artist}`}
+                                                onClick={() =>
+                                                    form.setData('selection', [
+                                                        ...selected,
+                                                        record,
+                                                    ])
+                                                }
+                                            >
+                                                {added ? (
+                                                    <Check size={17} />
+                                                ) : (
+                                                    <Plus size={17} />
+                                                )}
+                                                {added ? 'Added' : 'Add'}
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -466,18 +512,20 @@ export function ListEditPage({
                             Arrange your list
                         </h2>
                         <p className="muted">
-                            Drag the handles to reorder. This is how others will
-                            see your list.
+                            Drag the handles to reorder, or focus a handle and
+                            press Space, use the arrow keys, then press Space
+                            again.
                         </p>
                         <p className="selection-count" role="status">
                             {selected.length}{' '}
-                            {selected.length === 1 ? 'record' : 'records'} in
+                            {selected.length === 1 ? itemName : itemNames} in
                             your list
                         </p>
                         {selected.length === 0 && (
                             <p className="list-empty">
-                                A good list starts with one record. Find one in
-                                your collection or on Discogs and add it here.
+                                {isTrackList
+                                    ? 'Choose a release, then add a track to start your mix.'
+                                    : 'A good list starts with one record. Find one in your collection or on Discogs and add it here.'}
                             </p>
                         )}
                         <DndContext
@@ -491,14 +539,12 @@ export function ListEditPage({
                                         selected,
                                         selected.findIndex(
                                             (record) =>
-                                                (record.entryPublicId ??
-                                                    record.releaseId) ===
+                                                listEntryIdentity(record) ===
                                                 active.id,
                                         ),
                                         selected.findIndex(
                                             (record) =>
-                                                (record.entryPublicId ??
-                                                    record.releaseId) ===
+                                                listEntryIdentity(record) ===
                                                 over.id,
                                         ),
                                     ),
@@ -506,31 +552,27 @@ export function ListEditPage({
                             }}
                         >
                             <SortableContext
-                                items={selected.map(
-                                    (record) =>
-                                        record.entryPublicId ??
-                                        record.releaseId,
-                                )}
+                                items={selected.map(listEntryIdentity)}
                                 strategy={verticalListSortingStrategy}
                             >
                                 <ol>
                                     {selected.map((record, index) => (
                                         <SortableListRecord
-                                            key={
-                                                record.entryPublicId ??
-                                                record.releaseId
-                                            }
+                                            key={listEntryIdentity(record)}
                                             index={index}
                                             record={record}
+                                            disabled={form.processing}
                                             onRemove={() =>
                                                 form.setData(
                                                     'selection',
                                                     selected.filter(
                                                         (entry) =>
-                                                            (entry.entryPublicId ??
-                                                                entry.releaseId) !==
-                                                            (record.entryPublicId ??
-                                                                record.releaseId),
+                                                            listEntryIdentity(
+                                                                entry,
+                                                            ) !==
+                                                            listEntryIdentity(
+                                                                record,
+                                                            ),
                                                     ),
                                                 )
                                             }
@@ -540,7 +582,7 @@ export function ListEditPage({
                             </SortableContext>
                         </DndContext>
                         {selected.length >= 1000 && (
-                            <p>Lists can contain up to 1,000 records.</p>
+                            <p>Lists can contain up to 1,000 {itemNames}.</p>
                         )}
                     </aside>
                 </div>

@@ -107,7 +107,7 @@ class RecordListsController extends Controller
     {
         return [
             'list' => fn () => [
-                ...$list->only(['id', 'name', 'description', 'visibility']),
+                ...$list->only(['id', 'name', 'description', 'visibility', 'type']),
                 'publicId' => $list->public_id,
                 'url' => route('lists.show', $list),
                 'owner' => SocialData::person($list->user),

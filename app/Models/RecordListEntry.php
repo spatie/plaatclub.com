@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  * @property ?int $collection_record_id
  * @property ?int $release_id
  * @property ?string $private_note
+ * @property ?array<string, mixed> $track
  * @property Release $release
  * @property ?CollectionRecord $copy
  */
@@ -27,6 +28,11 @@ class RecordListEntry extends Pivot
     public $timestamps = false;
 
     protected $guarded = ['id'];
+
+    protected function casts(): array
+    {
+        return ['track' => 'array'];
+    }
 
     protected static function booted(): void
     {

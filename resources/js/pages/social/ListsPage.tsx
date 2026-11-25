@@ -4,7 +4,7 @@ import { useRef } from 'react';
 
 import { CollectionTabs } from '@/modules/lists/CollectionTabs';
 import { RecordListPreview } from '@/modules/lists/RecordListPreview';
-import type { ListPreview } from '@/modules/lists/types';
+import type { ListPreview, ListType } from '@/modules/lists/types';
 import { FieldError } from '@/modules/social/FieldError';
 import type { Visibility } from '@/modules/social/types';
 import { VisibilityPicker } from '@/modules/social/VisibilityPicker';
@@ -14,6 +14,7 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
     const nameInput = useRef<HTMLInputElement>(null);
     const form = useForm({
         name: '',
+        type: 'records' as ListType,
         description: '',
         visibility: 'only_me' as Visibility,
     });
@@ -41,6 +42,10 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
                 {lists.length === 0 ? (
                     <div className="list-empty">
                         <h2>No lists yet</h2>
+                        <p>
+                            Collect favourite albums, make a mixtape, or pick
+                            the best tracks by an artist or genre.
+                        </p>
                     </div>
                 ) : (
                     <div className="collection-previews list-cards">
@@ -80,8 +85,8 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
                         </button>
                     </div>
                     <p id="new-list-description">
-                        Name your selection, then pick records from your
-                        collection or search Discogs.
+                        Choose whole records or individual tracks, then find
+                        your picks in your collection or on Discogs.
                     </p>
                     <form
                         className="stack"
@@ -90,6 +95,41 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
                             form.post('/lists');
                         }}
                     >
+                        <fieldset
+                            className="list-type-picker"
+                            disabled={form.processing}
+                        >
+                            <legend>What goes in your list?</legend>
+                            {(['records', 'tracks'] as const).map((type) => (
+                                <label key={type}>
+                                    <input
+                                        type="radio"
+                                        name="list-type"
+                                        value={type}
+                                        checked={form.data.type === type}
+                                        onChange={() =>
+                                            form.setData('type', type)
+                                        }
+                                    />
+                                    <span>
+                                        <strong>
+                                            {type === 'records'
+                                                ? 'Records'
+                                                : 'Tracks'}
+                                        </strong>
+                                        <small>
+                                            {type === 'records'
+                                                ? 'Whole albums and releases. Favourites, wishlists, and records for a rainy day.'
+                                                : 'Individual songs. Make a mixtape or pick the best of an artist or genre.'}
+                                        </small>
+                                    </span>
+                                </label>
+                            ))}
+                        </fieldset>
+                        <FieldError
+                            id="type-error"
+                            message={form.errors.type}
+                        />
                         <label htmlFor="name">
                             List name
                             <input
@@ -97,7 +137,11 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
                                 id="name"
                                 required
                                 maxLength={120}
-                                placeholder="Sunday morning records"
+                                placeholder={
+                                    form.data.type === 'tracks'
+                                        ? 'The best of Kieran Hebden'
+                                        : 'Sunday morning records'
+                                }
                                 value={form.data.name}
                                 onChange={(event) =>
                                     form.setData('name', event.target.value)

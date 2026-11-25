@@ -26,7 +26,7 @@ class RecordListEntriesController extends Controller
         $payload['cover'] = route('lists.entries.cover', [$recordList, $entry], false);
         $payload['tracks'] = array_map(fn (array $track) => Arr::only($track, [
             'position', 'title', 'artist', 'duration', 'appleMusicUrl', 'appleMusicSearch', 'spotifyUrl', 'spotifySearch',
-        ]), $data['tracks'] ?? []);
+        ]), $entry->track === null ? ($data['tracks'] ?? []) : [$entry->track]);
 
         return response()->json($payload);
     }

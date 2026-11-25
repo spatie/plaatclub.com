@@ -212,6 +212,55 @@
     .list-create-actions .text-button {
         min-height: 44px;
     }
+    .list-type-picker {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+        padding: 0;
+        margin: 0;
+        border: 0;
+    }
+    .list-type-picker legend {
+        margin-bottom: 10px;
+    }
+    .list-type-picker label {
+        display: flex;
+        align-items: start;
+        gap: 12px;
+        padding: 14px 16px;
+        border: 1px solid #1e1e1540;
+        cursor: pointer;
+    }
+    .list-type-picker label:has(:checked) {
+        background: var(--cream);
+        border-color: var(--ink);
+    }
+    .list-type-picker input {
+        appearance: auto;
+        flex: none;
+        width: 20px;
+        height: 20px;
+        min-height: 0;
+        padding: 0;
+        margin: 2px 0 0;
+        accent-color: var(--ink);
+    }
+    .list-type-picker label span {
+        display: grid;
+        gap: 4px;
+    }
+    .list-type-picker label small {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .list-type-picker label:focus-within {
+        outline: 2px solid var(--ink);
+        outline-offset: 3px;
+    }
+    .list-form-errors ul {
+        margin-bottom: 0;
+        padding-left: 20px;
+    }
     .list-card {
         display: flex;
         flex-direction: column;
@@ -623,6 +672,40 @@
         opacity: 1;
         cursor: default;
     }
+    .picker-release-tracks {
+        grid-column: 1 / -1;
+        background: #fffdf180;
+        border-left: 3px solid var(--ink);
+        padding: 4px 14px;
+    }
+    .picker-release-tracks[hidden] {
+        display: none;
+    }
+    .picker-release-tracks ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .picker-release-tracks li {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 0;
+    }
+    .picker-release-tracks li + li {
+        border-top: 1px solid #1e1e1530;
+    }
+    .picker-release-tracks .track-position,
+    .picker-release-tracks .track-duration {
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+    }
+    .picker-choose-tracks {
+        max-width: 140px;
+        border-radius: 0;
+        font-size: 14px;
+    }
     .picker-selection {
         background: var(--lilac);
         padding: 24px;
@@ -650,7 +733,7 @@
     }
     .picker-selection li {
         display: grid;
-        grid-template-columns: 32px 16px 44px minmax(0, 1fr) 36px;
+        grid-template-columns: 44px 16px 44px minmax(0, 1fr) 44px;
         gap: 8px;
         padding: 14px 0;
         border-top: 1px solid #1e1e1530;
@@ -672,12 +755,11 @@
     .selection-remove {
         display: grid;
         place-items: center;
-        width: 36px;
+        width: 44px;
         height: 44px;
         background: transparent;
     }
     .selection-drag {
-        width: 32px;
         cursor: grab;
         touch-action: none;
     }
@@ -755,6 +837,72 @@
         font:
             700 30px/1.1 'Club Display',
             sans-serif;
+    }
+    .list-track-card .list-record-toggle {
+        grid-template-columns: 28px 56px minmax(0, 1fr) 24px;
+        gap: 16px;
+        padding-block: 18px 8px;
+    }
+    .list-track-card .list-record-toggle strong {
+        font:
+            600 18px/1.3 'Club Sans',
+            sans-serif;
+    }
+    .list-track-card .list-record-toggle .list-record-artwork {
+        width: 56px;
+    }
+    .list-track-card .list-record-toggle img {
+        width: 56px;
+        height: 56px;
+    }
+    .list-track-card .list-record-number {
+        font-variant-numeric: tabular-nums;
+    }
+    .list-track-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 20px;
+        margin: 0 0 12px 116px;
+    }
+    .list-track-links a {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 44px;
+        font-size: 13px;
+        text-underline-offset: 3px;
+    }
+    .list-track-search-label {
+        font-size: 11px;
+        text-decoration: none;
+    }
+    .list-track-card .list-entry-note {
+        margin: -4px 0 16px 116px;
+    }
+    .list-track-card .list-entry-note .text-button {
+        min-height: 44px;
+    }
+    .list-track-card .list-record-details {
+        padding-left: 116px;
+        font-size: 14px;
+    }
+    .list-track-release-details {
+        display: grid;
+        justify-items: start;
+        gap: 8px;
+    }
+    .list-track-release-details p {
+        margin: 0;
+    }
+    .list-track-release-details a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .picker-selection li {
+            transition: none !important;
+        }
     }
     .list-sharing {
         padding: 28px;
@@ -876,6 +1024,47 @@
     @media (max-width: 620px) {
         .list-create-content {
             padding: 24px;
+        }
+        .picker-choose-tracks {
+            grid-column: 2 / -1;
+            justify-self: start;
+            padding-inline: 12px;
+            max-width: none;
+        }
+        .picker-release-tracks {
+            padding-inline: 10px;
+        }
+        .picker-release-tracks li {
+            grid-template-columns: 20px minmax(0, 1fr) auto;
+            gap: 8px;
+        }
+        .picker-release-tracks .track-duration {
+            grid-column: 2;
+            grid-row: auto;
+            margin-top: -6px;
+        }
+        .picker-release-tracks .picker-add {
+            grid-column: 3;
+            grid-row: 1 / 3;
+        }
+        .list-track-card .list-record-toggle {
+            grid-template-columns: 20px 48px minmax(0, 1fr) 20px;
+            gap: 10px;
+        }
+        .list-track-card .list-record-toggle .list-record-artwork,
+        .list-track-card .list-record-toggle img {
+            width: 48px;
+            height: 48px;
+        }
+        .list-track-links,
+        .list-track-card .list-entry-note {
+            margin-left: 88px;
+        }
+        .list-track-card .list-entry-note:has(form) {
+            margin-left: 0;
+        }
+        .list-track-card .list-record-details {
+            padding-left: 0;
         }
         .picker-row {
             gap: 10px;

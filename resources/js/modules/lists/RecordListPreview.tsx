@@ -61,7 +61,14 @@ export function RecordListPreview({
                 >
                     <VisibilityBadge value={list.visibility} />
                     <span>
-                        {list.count} {list.count === 1 ? 'record' : 'records'}
+                        {list.count}{' '}
+                        {list.type === 'tracks'
+                            ? list.count === 1
+                                ? 'track'
+                                : 'tracks'
+                            : list.count === 1
+                              ? 'record'
+                              : 'records'}
                     </span>
                     <ArrowUpRight size={20} aria-hidden="true" />
                 </Link>

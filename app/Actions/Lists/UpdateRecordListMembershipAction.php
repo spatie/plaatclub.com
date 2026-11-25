@@ -15,6 +15,10 @@ class UpdateRecordListMembershipAction
         abort_unless($recordList->user_id === $user->id, 404);
         abort_unless($copy->user->canViewCollection($user), 404);
 
+        if ($recordList->type === 'tracks') {
+            throw ValidationException::withMessages(['record' => 'Open this track list to choose individual tracks.']);
+        }
+
         DB::transaction(function () use ($user, $recordList, $copy, $containsRecord): void {
             $list = RecordList::query()->lockForUpdate()->findOrFail($recordList->id);
 

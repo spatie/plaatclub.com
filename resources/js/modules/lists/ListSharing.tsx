@@ -37,7 +37,7 @@ export function ListSharing({ list }: { list: RecordList }) {
                     {form.data.visibility === 'only_me'
                         ? 'Just for you. Nobody else can see this list.'
                         : form.data.visibility === 'everyone'
-                          ? 'This list and its selected records will be public. The rest of your collection stays private unless you already share it.'
+                          ? `This list and its selected ${list.type === 'tracks' ? 'tracks' : 'records'} will be public. The rest of your collection stays private unless you already share it.`
                           : 'Only your accepted friends can open this list after signing in. Your collection’s privacy stays unchanged.'}
                 </p>
                 {form.isDirty && (

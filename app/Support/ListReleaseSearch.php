@@ -106,6 +106,7 @@ class ListReleaseSearch
         return [
             ...Arr::only($payload, ['artist', 'displayTitle', 'year', 'originalYear', 'format', 'mediaFormats', 'cover', 'country', 'label', 'catalogNumber', 'discogsUrl']),
             'releaseId' => $releaseId,
+            'tracks' => app(ListRecords::class)->tracks($payload),
             ...app(ListRecords::class)->ownership($owner, $releaseId, $payload['discogsMasterId'] ?? null),
         ];
     }

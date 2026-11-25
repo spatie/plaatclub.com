@@ -1,9 +1,23 @@
 import type { CollectionRecordSummary } from '@/components/records/types';
 import type { Pagination, Person, Visibility } from '@/modules/social/types';
 
+export type ListType = 'records' | 'tracks';
+export type ListTrack = {
+    index: number;
+    position: string;
+    title: string;
+    artist: string;
+    duration: string;
+    appleMusicUrl?: string;
+    spotifyUrl?: string;
+    appleMusicSearch?: boolean;
+    spotifySearch?: boolean;
+};
+
 export type ListSummary = {
     id: number;
     publicId: string;
+    type: ListType;
     name: string;
     description: string | null;
     visibility: Visibility;
@@ -19,6 +33,7 @@ export type RecordList = Omit<ListSummary, 'count'> & {
 export type ListRecord = CollectionRecordSummary & {
     entryPublicId: string;
     releaseId: number;
+    track: ListTrack | null;
     catalogNumber?: string;
     discogsUrl?: string;
     copyId?: number;
@@ -46,7 +61,7 @@ export type PickerRecord = Pick<
     | 'otherPressingOwned'
     | 'country'
     | 'label'
-> & { entryPublicId?: string };
+> & { entryPublicId?: string; track?: ListTrack | null };
 export type ListProps = { list: RecordList; records: ListRecord[] };
 export type ListEditProps = ListProps & {
     query: string;

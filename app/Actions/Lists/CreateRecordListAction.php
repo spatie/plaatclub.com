@@ -18,8 +18,9 @@ class CreateRecordListAction
         $data = Validator::make($attributes, [
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'type' => ['sometimes', 'required', Rule::in(['records', 'tracks'])],
             'visibility' => ['sometimes', 'required', Rule::in(['only_me', 'friends', 'everyone'])],
-            'copyId' => ['sometimes', 'required', 'integer', function (string $attribute, mixed $value, $fail) use ($user): void {
+            'copyId' => ['sometimes', 'required', 'prohibited_if:type,tracks', 'integer', function (string $attribute, mixed $value, $fail) use ($user): void {
                 if (! CollectionRecord::visibleTo($user)->whereKey($value)->exists()) {
                     $fail('This record is unavailable.');
                 }

@@ -17,6 +17,97 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Ai\Tools\Request as ToolRequest;
 
+it('creates track lists, saves multiple tracks per release and preserves picks through metadata changes and reordering', function () {
+    $owner = socialUser('mixtape_owner');
+    $copy = socialRecord(socialUser('private_collector'), 'Selected album');
+    $release = $copy->release;
+    $release->update(['data' => [...$release->data, 'tracks' => [
+        ['position' => 'A1', 'title' => 'Opening song', 'artist' => '', 'duration' => '3:17'],
+        ['position' => 'B2', 'title' => 'Guest song', 'artist' => 'Guest singer', 'duration' => '6:43', 'spotifyUrl' => 'https://open.spotify.com/track/guest', 'spotifySearch' => false],
+    ]]]);
+    $this->actingAs($owner)->post('/lists', ['name' => 'Late night mixtape', 'type' => 'tracks', 'visibility' => 'everyone'])->assertRedirect();
+    $list = RecordList::query()->where('user_id', $owner->id)->sole();
+    $base = "/lists/{$list->public_id}";
+    $this->getJson("{$base}/releases/{$release->id}/tracks")->assertOk()->assertJsonPath('tracks.0.artist', $release->artist)
+        ->assertJsonPath('tracks.1.title', 'Guest song')->assertJsonPath('tracks.1.index', 1);
+    $this->patch($base, ['entries' => [
+        ['releaseId' => $release->id, 'trackIndex' => 1, 'track' => ['title' => 'Forged title']],
+        ['releaseId' => $release->id, 'trackIndex' => 0],
+    ]])->assertSessionHasNoErrors()->assertRedirect('/lists');
+    $entries = $list->entries()->get();
+    expect($entries)->toHaveCount(2)->and($entries[0]->track['title'])->toBe('Guest song')
+        ->and($entries[1]->track['title'])->toBe('Opening song')->and($owner->records()->count())->toBe(0);
+    $this->patch("{$base}/entries/{$entries[0]->public_id}", ['privateNote' => 'Keep this transition.'])->assertSessionHasNoErrors();
+    $release->update(['data' => [...$release->data, 'tracks' => []]]);
+    $this->patch($base, ['entries' => [
+        ['entryPublicId' => $entries[1]->public_id, 'releaseId' => $release->id, 'trackIndex' => 0],
+        ['entryPublicId' => $entries[0]->public_id, 'releaseId' => $release->id, 'trackIndex' => 1],
+    ]])->assertSessionHasNoErrors();
+    $this->get($base)->assertInertia(fn (Assert $page) => $page->where('list.type', 'tracks')->has('records', 2)
+        ->where('records.0.track.title', 'Opening song')->where('records.1.track.artist', 'Guest singer')
+        ->where('records.1.privateNote', 'Keep this transition.'));
+    $this->getJson("{$base}/entries/{$entries[0]->public_id}")->assertOk()->assertJsonCount(1, 'tracks')->assertJsonPath('tracks.0.title', 'Guest song');
+    $this->get('/lists')->assertInertia(fn (Assert $page) => $page->where('lists.0.type', 'tracks')->where('lists.0.count', 2));
+    auth()->forgetGuards();
+    $this->get($base)->assertInertia(fn (Assert $page) => $page->where('list.canEdit', false)->missing('records.1.privateNote')->where('records.1.track.title', 'Guest song'));
+    $this->actingAs($owner)->patch($base, ['entries' => [
+        ['entryPublicId' => $entries[0]->public_id, 'releaseId' => $release->id, 'trackIndex' => 1],
+    ]])->assertSessionHasNoErrors();
+    expect($list->entries()->sole()->public_id)->toBe($entries[0]->public_id);
+});
+
+it('rejects invalid track selections and album-only updates without changing a saved mixtape', function () {
+    $owner = socialUser('mixtape_owner');
+    $copy = socialRecord($owner);
+    $list = RecordList::query()->create(['user_id' => $owner->id, 'name' => 'Mixtape', 'type' => 'tracks']);
+    $base = "/lists/{$list->public_id}";
+    $this->actingAs($owner)->patch($base, ['entries' => [['releaseId' => $copy->discogs_release_id, 'trackIndex' => 0]]])->assertSessionHasNoErrors();
+    $entry = $list->entries()->sole();
+    foreach ([
+        ['entries' => [['releaseId' => $copy->discogs_release_id]]],
+        ['entries' => [['releaseId' => $copy->discogs_release_id, 'trackIndex' => 999999]]],
+        ['entries' => [['entryPublicId' => $entry->public_id, 'releaseId' => $copy->discogs_release_id, 'trackIndex' => 1]]],
+        ['entries' => array_fill(0, 2, ['releaseId' => $copy->discogs_release_id, 'trackIndex' => 0])],
+        ['recordIds' => [$copy->id]],
+        ['recordIds' => []],
+        ['type' => 'records'],
+    ] as $data) {
+        $this->patch($base, ['name' => 'Must not save', ...$data])->assertSessionHasErrors();
+        expect($list->fresh()->name)->toBe('Mixtape')->and($list->entries()->sole()->public_id)->toBe($entry->public_id);
+    }
+    $this->post("{$base}/records/{$copy->public_id}")->assertSessionHasErrors('record');
+    $this->delete("{$base}/records/{$copy->public_id}")->assertSessionHasErrors('record');
+    expect($list->entries()->count())->toBe(1);
+    $albumList = RecordList::query()->create(['user_id' => $owner->id, 'name' => 'Albums']);
+    $this->patch("/lists/{$albumList->public_id}", ['entries' => [['releaseId' => $copy->discogs_release_id, 'trackIndex' => 0]]])->assertSessionHasErrors();
+    $this->patch("/lists/{$albumList->public_id}", ['entries' => [['releaseId' => $copy->discogs_release_id, 'track' => ['index' => 0, 'title' => 'Forged track']]]])->assertSessionHasNoErrors();
+    expect($albumList->entries()->sole()->track)->toBeNull();
+    $this->post('/lists', ['name' => 'Invalid', 'type' => 'tracks', 'copyId' => $copy->id])->assertSessionHasErrors('copyId');
+});
+
+it('authorizes track browsing and imports outside-collection tracks only when saved', function () {
+    Http::preventStrayRequests();
+    $owner = socialUser('mixtape_owner');
+    $list = RecordList::query()->create(['user_id' => $owner->id, 'name' => 'Mixtape', 'type' => 'tracks']);
+    $base = "/lists/{$list->public_id}";
+    Http::fake(['api.discogs.com/releases/880011' => Http::response([
+        'id' => 880011, 'title' => 'Outside album', 'artists' => [['name' => 'Outside artist']],
+        'tracklist' => [['position' => '1', 'title' => 'Outside song', 'duration' => '5:21']],
+    ]), 'api.discogs.com/releases/880012' => Http::response([], 503)]);
+    $this->actingAs(socialUser('not_the_owner'))->getJson("{$base}/releases/880011/tracks")->assertNotFound();
+    $this->patch($base, ['entries' => []])->assertNotFound();
+    Http::assertNothingSent();
+    $this->flushSession();
+    $this->actingAs($owner)->getJson("{$base}/releases/880011/tracks")->assertOk()->assertJsonPath('tracks.0.title', 'Outside song');
+    expect(Release::query()->whereKey(880011)->exists())->toBeFalse();
+    $this->getJson("{$base}/releases/880012/tracks")->assertUnprocessable()->assertJsonValidationErrors('tracks');
+    $this->patch($base, ['entries' => [['releaseId' => 880011, 'trackIndex' => 0]]])->assertSessionHasNoErrors();
+    expect($list->entries()->sole()->track['title'])->toBe('Outside song')->and($owner->records()->count())->toBe(0);
+    auth()->forgetGuards();
+    $this->get($base)->assertNotFound();
+    $this->getJson("{$base}/entries/{$list->entries()->sole()->public_id}")->assertNotFound();
+});
+
 it('backfills stable unique list public ids without changing existing lists or their entries', function () {
     $connection = DB::getDefaultConnection();
     config(['database.connections.list_migration' => [...config('database.connections.sqlite'), 'database' => ':memory:']]);
@@ -202,6 +293,27 @@ it('previews the first four ordered covers of each owned list while counting all
         ->where('lists.1.publicId', $small->public_id)->where('lists.1.count', 1)
         ->where('lists.1.covers', [route('lists.entries.cover', [$small, $small->entries()->first()], false)])
         ->where('lists.2.publicId', $empty->public_id)->where('lists.2.count', 0)->has('lists.2.covers', 0));
+});
+
+it('previews the first four distinct releases in track order while counting every selected song', function () {
+    $owner = socialUser('mixtape_owner');
+    $copies = collect(range(1, 5))->map(fn (int $index) => socialRecord($owner, "Album {$index}", instance: 100 + $index));
+    $list = RecordList::query()->create(['user_id' => $owner->id, 'name' => 'Nine songs', 'type' => 'tracks']);
+    $entries = [];
+    foreach ([2, 0, 4, 1, 3, 5, 6, 7, 8] as $position) {
+        $entries[$position] = $list->entries()->create([
+            'release_id' => $copies[max(0, $position - 4)]->discogs_release_id,
+            'position' => $position,
+            'track' => ['index' => $position, 'title' => "Song {$position}"],
+        ]);
+    }
+
+    $this->actingAs($owner)->get('/lists')->assertInertia(fn (Assert $page) => $page
+        ->where('lists.0.count', 9)
+        ->where('lists.0.covers', array_map(
+            fn (int $position) => route('lists.entries.cover', [$list, $entries[$position]], false),
+            [0, 5, 6, 7],
+        )));
 });
 
 it('preserves the audience when replacing inherited list visibility', function () {

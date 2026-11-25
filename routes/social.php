@@ -12,6 +12,7 @@ use App\Http\Controllers\InvitationsController;
 use App\Http\Controllers\ListEntryCoversController;
 use App\Http\Controllers\ListRecordCoversController;
 use App\Http\Controllers\ListReleaseCoversController;
+use App\Http\Controllers\ListReleaseTracksController;
 use App\Http\Controllers\RecordCoverController;
 use App\Http\Controllers\RecordListEntriesController;
 use App\Http\Controllers\RecordListRecordsController;
@@ -87,6 +88,7 @@ Route::middleware([PrivateResponse::class, RequireVerifiedAccount::class, Ensure
             Route::get('/feed', fn (Request $request) => redirect()->route('feed', $request->query(), 301));
             Route::get('/friends', [SocialController::class, 'feed'])->name('feed');
             Route::get('/lists', [RecordListsController::class, 'index'])->name('lists.index');
+            Route::get('/lists/{recordList}/releases/{releaseId}/tracks', ListReleaseTracksController::class)->whereUuid('recordList')->where('releaseId', '[1-9][0-9]{0,9}')->middleware('throttle:60,1')->name('lists.releaseTracks');
             Route::get('/lists/{recordList}/releases/{releaseId}/cover', ListReleaseCoversController::class)->whereUuid('recordList')->where('releaseId', '[1-9][0-9]{0,9}')->middleware('throttle:120,1')->name('lists.releaseCover');
             Route::patch('/lists/{recordList}/entries/{entry}', [RecordListEntriesController::class, 'update'])->whereUuid(['recordList', 'entry'])->name('lists.entries.update');
             Route::post('/lists', [RecordListsController::class, 'store'])->middleware('throttle:30,1')->name('lists.store');

@@ -130,7 +130,7 @@ class WriteRecordList implements Approvable, Tool
     {
         return hash('sha256', json_encode([
             $list->only(['name', 'description', 'visibility']),
-            $list->entries()->get(['public_id', 'release_id', 'collection_record_id', 'position', 'private_note'])->toArray(),
+            $list->entries()->get(['public_id', 'release_id', 'collection_record_id', 'position', 'private_note', 'track'])->toArray(),
         ], JSON_THROW_ON_ERROR));
     }
 }
