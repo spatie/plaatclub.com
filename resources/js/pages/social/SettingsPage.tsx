@@ -64,11 +64,14 @@ export function SettingsPage() {
                             <input
                                 id="handle"
                                 name="handle"
+                                autoComplete="username"
+                                autoCapitalize="none"
+                                spellCheck={false}
                                 aria-invalid={Boolean(form.errors.handle)}
                                 aria-describedby={
                                     form.errors.handle
-                                        ? 'handle-error'
-                                        : undefined
+                                        ? 'handle-help handle-error'
+                                        : 'handle-help'
                                 }
                                 value={form.data.handle}
                                 onChange={(event) =>
@@ -79,6 +82,10 @@ export function SettingsPage() {
                                 maxLength={30}
                                 required
                             />
+                            <small id="handle-help">
+                                3–30 letters, numbers or underscores. Changing
+                                this also changes your profile link.
+                            </small>
                         </label>
                         <FieldError
                             id="handle-error"
@@ -106,7 +113,7 @@ export function SettingsPage() {
                             </Link>
                         </div>
                         <button className="button" disabled={form.processing}>
-                            Save preferences
+                            {form.processing ? 'Saving…' : 'Save preferences'}
                         </button>
                     </form>
                     <div className="settings-sharing">

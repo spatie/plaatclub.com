@@ -507,7 +507,7 @@ export function ListEditPage({
                         className="picker-selection"
                         aria-labelledby="selected-title"
                     >
-                        <h2 id="selected-title">
+                        <h2 id="selected-title" tabIndex={-1}>
                             <span className="picker-step-number">2</span>{' '}
                             Arrange your list
                         </h2>
@@ -587,6 +587,22 @@ export function ListEditPage({
                     </aside>
                 </div>
                 <div className="picker-footer">
+                    <button
+                        className="picker-review-count"
+                        type="button"
+                        onClick={() => {
+                            setReview(true);
+                            requestAnimationFrame(() => {
+                                document
+                                    .getElementById('selected-title')
+                                    ?.focus();
+                            });
+                        }}
+                    >
+                        {selected.length}{' '}
+                        {selected.length === 1 ? itemName : itemNames} selected
+                        <span>Review your list ↑</span>
+                    </button>
                     <div className="actions">
                         <Link href={base} className="button secondary">
                             Cancel

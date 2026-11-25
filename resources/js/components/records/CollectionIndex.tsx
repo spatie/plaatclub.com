@@ -44,6 +44,7 @@ export function CollectionIndex({
 }: CollectionIndexProps) {
     const prefetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const indexGroups = useRef<HTMLDivElement>(null);
+    const artistSearch = useRef<HTMLInputElement>(null);
     const [groupQuery, setGroupQuery] = useState('');
     const [indexScroll, setIndexScroll] = useState({
         overflowing: false,
@@ -137,7 +138,10 @@ export function CollectionIndex({
                 <div className="artist-search">
                     <Search aria-hidden="true" size={15} />
                     <input
+                        ref={artistSearch}
                         aria-label="Filter artists"
+                        autoComplete="off"
+                        spellCheck={false}
                         className="artist-filter"
                         onChange={(event) => setGroupQuery(event.target.value)}
                         placeholder="Find an artist"
@@ -148,7 +152,10 @@ export function CollectionIndex({
                         <button
                             type="button"
                             aria-label="Clear artist search"
-                            onClick={() => setGroupQuery('')}
+                            onClick={() => {
+                                setGroupQuery('');
+                                artistSearch.current?.focus();
+                            }}
                         >
                             <X aria-hidden="true" size={16} />
                         </button>

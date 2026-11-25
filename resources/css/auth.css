@@ -74,6 +74,17 @@
         text-transform: none;
         font-size: 14px;
     }
+    .auth-panel .auth-password-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-self: end;
+        gap: 8px;
+        min-height: 44px;
+        margin-top: -10px;
+        font-size: 14px;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
     .auth-links {
         display: flex;
         flex-wrap: wrap;

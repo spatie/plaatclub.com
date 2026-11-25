@@ -55,9 +55,11 @@
         background: var(--paper);
         transform: rotate(-5deg);
     }
-    .collection-tabs button:hover {
-        text-decoration: underline;
-        text-underline-offset: 5px;
+    @media (hover: hover) and (pointer: fine) {
+        .collection-tabs button:hover {
+            text-decoration: underline;
+            text-underline-offset: 5px;
+        }
     }
     .record-search {
         display: flex;
@@ -82,12 +84,17 @@
     .record-search input:focus-visible {
         outline: none;
     }
+    .record-search:focus-within,
+    .artist-search:focus-within {
+        outline: 2px solid var(--ink);
+        outline-offset: 4px;
+    }
     .record-search input::-webkit-search-cancel-button,
     .artist-search input::-webkit-search-cancel-button {
         display: none;
     }
     .record-search button {
-        min-width: 36px;
+        min-width: 44px;
         min-height: 44px;
         display: grid;
         place-items: center;
@@ -170,7 +177,7 @@
         font-size: 16px;
     }
     .artist-search button {
-        min-width: 30px;
+        min-width: 44px;
         min-height: 44px;
     }
     .index-continuation {

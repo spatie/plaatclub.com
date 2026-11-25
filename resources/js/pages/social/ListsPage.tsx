@@ -11,7 +11,7 @@ import { VisibilityPicker } from '@/modules/social/VisibilityPicker';
 
 export function ListsPage({ lists }: { lists: ListPreview[] }) {
     const dialog = useRef<HTMLDialogElement>(null);
-    const nameInput = useRef<HTMLInputElement>(null);
+    const title = useRef<HTMLHeadingElement>(null);
     const form = useForm({
         name: '',
         type: 'records' as ListType,
@@ -33,7 +33,7 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
                         type="button"
                         onClick={() => {
                             dialog.current?.showModal();
-                            nameInput.current?.focus();
+                            title.current?.focus();
                         }}
                     >
                         <Plus size={18} aria-hidden="true" /> Make a list
@@ -73,7 +73,9 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
             >
                 <div className="list-create-content stack">
                     <div className="list-create-heading">
-                        <h2 id="new-list-title">Make a list</h2>
+                        <h2 ref={title} id="new-list-title" tabIndex={-1}>
+                            Make a list
+                        </h2>
                         <button
                             className="list-create-close"
                             type="button"
@@ -85,8 +87,7 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
                         </button>
                     </div>
                     <p id="new-list-description">
-                        Choose whole records or individual tracks, then find
-                        your picks in your collection or on Discogs.
+                        Find your picks in your collection or on Discogs.
                     </p>
                     <form
                         className="stack"
@@ -119,8 +120,8 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
                                         </strong>
                                         <small>
                                             {type === 'records'
-                                                ? 'Whole albums and releases. Favourites, wishlists, and records for a rainy day.'
-                                                : 'Individual songs. Make a mixtape or pick the best of an artist or genre.'}
+                                                ? 'Whole albums and releases for favourites, wishlists and rainy days.'
+                                                : 'Individual songs for a mixtape or the best of an artist or genre.'}
                                         </small>
                                     </span>
                                 </label>
@@ -133,7 +134,6 @@ export function ListsPage({ lists }: { lists: ListPreview[] }) {
                         <label htmlFor="name">
                             List name
                             <input
-                                ref={nameInput}
                                 id="name"
                                 required
                                 maxLength={120}

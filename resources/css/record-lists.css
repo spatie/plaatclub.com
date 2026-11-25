@@ -204,10 +204,18 @@
         outline-offset: -1px;
         background: var(--cream);
     }
+    .list-create-dialog :is(input, textarea, button, summary) {
+        scroll-margin-block: 16px 100px;
+    }
     .list-create-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
         justify-content: space-between;
         border-top: 1px solid #1e1e1540;
-        padding-top: 20px;
+        margin: 0 -32px -32px;
+        padding: 16px 32px;
+        background: var(--lilac);
     }
     .list-create-actions .text-button {
         min-height: 44px;
@@ -783,14 +791,33 @@
         position: sticky;
         z-index: 5;
         bottom: 0;
-        margin: 32px -1px -40px;
-        padding: 18px 0;
+        margin: 32px -1px 0;
+        padding: 18px 0 max(18px, env(safe-area-inset-bottom));
         background: var(--cream);
         border-top: 1px solid;
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
         gap: 20px;
         align-items: center;
+    }
+    .picker-review-count {
+        min-height: 44px;
+        text-align: left;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+    .picker-review-count span {
+        display: block;
+        font-size: 13px;
+        font-weight: 400;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+    .record-picker :is(button, input) {
+        scroll-margin-block: 24px 160px;
+    }
+    #selected-title {
+        scroll-margin-block: 24px;
     }
     .picker-mobile-tabs {
         display: none;
@@ -1025,6 +1052,10 @@
         .list-create-content {
             padding: 24px;
         }
+        .list-create-actions {
+            margin: 0 -24px -24px;
+            padding: 14px 24px max(14px, env(safe-area-inset-bottom));
+        }
         .picker-choose-tracks {
             grid-column: 2 / -1;
             justify-self: start;
@@ -1077,7 +1108,8 @@
         }
         .picker-footer {
             gap: 12px;
-            padding: 14px 16px;
+            flex-wrap: wrap;
+            padding: 14px 0 max(14px, env(safe-area-inset-bottom));
         }
         .picker-footer .actions {
             gap: 8px;

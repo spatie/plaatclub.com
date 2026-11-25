@@ -128,6 +128,14 @@
     summary {
         cursor: pointer;
     }
+    a,
+    button,
+    summary,
+    input,
+    select,
+    textarea {
+        touch-action: manipulation;
+    }
     button:disabled {
         cursor: wait;
         opacity: 0.55;
@@ -162,6 +170,7 @@
     .brand {
         display: inline-flex;
         align-items: center;
+        min-height: 44px;
         gap: 7px;
         font:
             700 36px/0.9 'Club Display',
@@ -340,6 +349,7 @@
     .account-popover {
         padding: 8px;
         min-width: 220px;
+        overscroll-behavior: contain;
     }
     .account-popover > a,
     .account-popover > button {
@@ -396,8 +406,9 @@
         font-size: 34px;
     }
     .notifications-close {
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
+        flex: none;
         border: 1px solid;
         border-radius: 50%;
         background: transparent;
@@ -533,6 +544,9 @@
     .page-heading .lede {
         margin-bottom: 0;
     }
+    .page-heading > :last-child {
+        margin-bottom: 0;
+    }
     .page-eyebrow {
         font-size: 14px;
         text-transform: uppercase;
@@ -656,7 +670,7 @@
         color: #88200e;
         font-size: 15px;
     }
-    input[aria-invalid='true'] {
+    :is(input, textarea, select)[aria-invalid='true'] {
         border-width: 2px;
         border-color: #88200e;
     }
@@ -1722,6 +1736,7 @@
             font-size: 32px;
         }
         .page-heading {
+            padding-bottom: 20px;
             margin-bottom: 24px;
         }
         .collector-heading h1 {

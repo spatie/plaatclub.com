@@ -24,6 +24,7 @@ export function CollectionControls({
     onQuery,
 }: CollectionControlsProps) {
     const controls = useRef<HTMLDivElement>(null);
+    const search = useRef<HTMLInputElement>(null);
     useLayoutEffect(() => {
         const element = controls.current;
         if (!element) return;
@@ -55,7 +56,10 @@ export function CollectionControls({
             <div className="record-search">
                 <Search aria-hidden="true" size={20} />
                 <input
+                    ref={search}
                     aria-label="Search records"
+                    autoComplete="off"
+                    spellCheck={false}
                     onChange={(event) => onQuery(event.target.value)}
                     placeholder="Find a record…"
                     type="search"
@@ -64,7 +68,10 @@ export function CollectionControls({
                 {query && (
                     <button
                         aria-label="Clear search"
-                        onClick={() => onQuery('')}
+                        onClick={() => {
+                            onQuery('');
+                            search.current?.focus();
+                        }}
                         type="button"
                     >
                         <X size={18} />

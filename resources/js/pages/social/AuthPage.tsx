@@ -1,4 +1,6 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
 
 import { FieldError } from '@/modules/social/FieldError';
 import { HeroArtwork } from '@/modules/social/HeroArtwork';
@@ -30,6 +32,7 @@ const introductions = {
 export function AuthPage({ artwork, mode, token = '', email = '' }: AuthProps) {
     const { auth, csrfToken, googleEnabled, demoUsers } =
         usePage<SocialProps>().props;
+    const [showPassword, setShowPassword] = useState(false);
     const form = useForm({
         email,
         password: '',
@@ -174,7 +177,11 @@ export function AuthPage({ artwork, mode, token = '', email = '' }: AuthProps) {
                                             <input
                                                 id="password"
                                                 name="password"
-                                                type="password"
+                                                type={
+                                                    showPassword
+                                                        ? 'text'
+                                                        : 'password'
+                                                }
                                                 aria-invalid={Boolean(
                                                     form.errors.password,
                                                 )}
@@ -226,7 +233,11 @@ export function AuthPage({ artwork, mode, token = '', email = '' }: AuthProps) {
                                                 <input
                                                     id="password_confirmation"
                                                     name="password_confirmation"
-                                                    type="password"
+                                                    type={
+                                                        showPassword
+                                                            ? 'text'
+                                                            : 'password'
+                                                    }
                                                     autoComplete="new-password"
                                                     aria-invalid={Boolean(
                                                         form.errors
@@ -260,13 +271,50 @@ export function AuthPage({ artwork, mode, token = '', email = '' }: AuthProps) {
                                                 />
                                             </label>
                                         )}
+                                        <button
+                                            type="button"
+                                            className="auth-password-toggle"
+                                            aria-controls={
+                                                mode === 'reset'
+                                                    ? 'password password_confirmation'
+                                                    : 'password'
+                                            }
+                                            aria-pressed={showPassword}
+                                            onClick={() =>
+                                                setShowPassword(!showPassword)
+                                            }
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff
+                                                    size={18}
+                                                    aria-hidden="true"
+                                                />
+                                            ) : (
+                                                <Eye
+                                                    size={18}
+                                                    aria-hidden="true"
+                                                />
+                                            )}
+                                            {showPassword ? 'Hide' : 'Show'}{' '}
+                                            {mode === 'reset'
+                                                ? 'passwords'
+                                                : 'password'}
+                                        </button>
                                     </>
                                 )}
                                 <button
                                     className="button"
                                     disabled={form.processing}
                                 >
-                                    {label}
+                                    {form.processing
+                                        ? mode === 'login'
+                                            ? 'Signing in…'
+                                            : mode === 'register'
+                                              ? 'Creating account…'
+                                              : mode === 'reset'
+                                                ? 'Saving…'
+                                                : 'Sending…'
+                                        : label}
                                 </button>
                             </form>
                             {mode === 'login' ? (
